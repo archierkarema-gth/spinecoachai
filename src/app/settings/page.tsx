@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { putUser, resetUserData } from "@/lib/db";
+import { isCloudConfigured } from "@/lib/supabase";
+import { syncAll } from "@/lib/sync";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -17,6 +19,13 @@ export default function SettingsPage() {
   const [age, setAge] = useState(32);
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [cloudReady, setCloudReady] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCloudReady(isCloudConfigured());
+  }, []);
 
   useEffect(() => {
     if (!hydrated) hydrate();
@@ -36,6 +45,25 @@ export default function SettingsPage() {
     setUser(updated);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function onSync() {
+    if (!user) return;
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const result = await syncAll(user.id);
+      setSyncMsg(
+        result.ran
+          ? `Selesai — ${result.pushed} terkirim, ${result.pulled} diunduh.`
+          : "Cloud belum dikonfigurasi."
+      );
+      await hydrate();
+    } catch (e) {
+      setSyncMsg(e instanceof Error ? e.message : "Sync gagal.");
+    } finally {
+      setSyncing(false);
+    }
   }
 
   async function onReset() {
@@ -75,6 +103,31 @@ export default function SettingsPage() {
           <Button onClick={onSaveProfile} disabled={!user}>
             {saved ? "Tersimpan" : "Simpan profil"}
           </Button>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <CardTitle>Cloud sync</CardTitle>
+          {cloudReady ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Sinkronkan asesmen, check-in, sesi, dan catatan nyeri ke
+                Supabase. Foto tetap di perangkat.
+              </p>
+              <Button onClick={onSync} disabled={syncing || !user}>
+                {syncing ? "Menyinkronkan…" : "Sinkronkan sekarang"}
+              </Button>
+              {syncMsg && (
+                <p className="text-xs text-muted-foreground">{syncMsg}</p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Belum dikonfigurasi. Isi <code>NEXT_PUBLIC_SUPABASE_URL</code> dan{" "}
+              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> di{" "}
+              <code>.env.local</code>, lalu jalankan migrasi di{" "}
+              <code>supabase/migrations</code>.
+            </p>
+          )}
         </Card>
 
         <Card className="flex flex-col gap-3 border-destructive/40">

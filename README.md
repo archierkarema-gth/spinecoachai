@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SpineCoach AI
 
-## Getting Started
+Adaptive bodyweight performance coach for adults with scoliosis. Offline-first
+Next.js app; all data lives on-device in IndexedDB, with optional Supabase
+cloud sync.
 
-First, run the development server:
+Built from the spec in [`docs/`](docs/) — those files are the source of truth.
+The AI Decision Engine is rule-based and safety-first: it never diagnoses and
+escalates red-flag symptoms to medical review (see
+[`docs/04_Clinical_Guardrails.md`](docs/04_Clinical_Guardrails.md)).
+
+## Stack
+
+Next.js (App Router) · TypeScript · Tailwind v4 · Zustand · Zod · IndexedDB
+(`idb`) · Supabase (optional) · Vitest.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm test         # vitest
+npm run build    # production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Feature flow
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Initial Assessment → Daily Check-in → AI Decision Engine → Today's Workout →
+finish session → Progress (streak, pain trend). Plus Exercise Library, Pain
+Tracker, Progress Photos, Reports, and Settings.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Cloud sync (optional)
 
-## Learn More
+The app runs fully offline by default. To enable multi-device sync:
 
-To learn more about Next.js, take a look at the following resources:
+1. Create a Supabase project.
+2. Run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)
+   in the SQL editor (creates per-user tables with row-level security).
+3. Copy `.env.local.example` to `.env.local` and fill in
+   `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+4. Settings → Cloud sync → **Sinkronkan sekarang**.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Sync is an id-keyed upsert in both directions; the local copy always wins on a
+shared id. Progress photos stay on-device (not synced in v1).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Data & privacy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Health data (assessments, pain logs, posture photos) is stored locally. Reset
+from Settings wipes every user record permanently.
