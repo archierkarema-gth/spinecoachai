@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Clock } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 import { TopBar } from "@/components/nav/top-bar";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
-import { getAllExercises } from "@/lib/db";
+import { getAllExercises, putWorkoutLog } from "@/lib/db";
 import {
   generateSession,
   type GeneratedSession,
@@ -21,8 +22,18 @@ const SIDE_LABEL: Record<SideEmphasis, string> = {
 };
 
 export default function WorkoutPage() {
-  const { hydrated, hydrate, latestAssessment, latestCheckIn } = useAppStore();
+  const router = useRouter();
+  const {
+    hydrated,
+    hydrate,
+    latestAssessment,
+    latestCheckIn,
+    workoutLogs,
+    user,
+    refreshLogs,
+  } = useAppStore();
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!hydrated) hydrate();
@@ -38,9 +49,32 @@ export default function WorkoutPage() {
       assessment: latestAssessment,
       checkIn: latestCheckIn,
       exercises,
-      recentSessionTimestamps: [],
+      recentSessionTimestamps: workoutLogs.map((l) => l.createdAt),
     });
-  }, [latestAssessment, latestCheckIn, exercises]);
+  }, [latestAssessment, latestCheckIn, exercises, workoutLogs]);
+
+  async function finishSession() {
+    if (!user || !session) return;
+    setSaving(true);
+    await putWorkoutLog({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      createdAt: Date.now(),
+      movementFocus: session.movementFocus,
+      intensity: session.intensity,
+      estimatedMinutes: session.estimatedMinutes,
+      exercises: session.blocks.flatMap((b) =>
+        b.exercises.map((ex) => ({
+          exerciseId: ex.id,
+          name: ex.name,
+          domain: ex.domain,
+          completed: true,
+        }))
+      ),
+    });
+    await refreshLogs();
+    router.push("/progress");
+  }
 
   if (!hydrated || !exercises) {
     return (
@@ -174,6 +208,11 @@ export default function WorkoutPage() {
             </div>
           </Card>
         ))}
+
+        <Button size="lg" onClick={finishSession} disabled={saving || !user}>
+          <CheckCircle2 size={18} />
+          {saving ? "Menyimpan…" : "Selesaikan sesi"}
+        </Button>
 
         <p className="px-1 text-xs text-muted-foreground">
           SpineCoach AI bukan pengganti dokter atau fisioterapis. Hentikan

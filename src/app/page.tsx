@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { TopBar } from "@/components/nav/top-bar";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { putUser } from "@/lib/db";
+import { computeStreak, sessionsInLastDays } from "@/lib/progress";
 
 // Personal-use MVP (docs/01_Project_Charter.md): single local user, seeded
 // on first load so the assessment can attach to a userId immediately.
@@ -24,7 +25,11 @@ async function ensureUser() {
 }
 
 export default function DashboardPage() {
-  const { hydrated, user, latestAssessment, hydrate } = useAppStore();
+  const { hydrated, user, latestAssessment, workoutLogs, hydrate } =
+    useAppStore();
+
+  const streak = useMemo(() => computeStreak(workoutLogs), [workoutLogs]);
+  const week = useMemo(() => sessionsInLastDays(workoutLogs, 7), [workoutLogs]);
 
   useEffect(() => {
     hydrate().then(ensureUser);
@@ -98,13 +103,25 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        <Card>
-          <CardTitle>Progres</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Belum ada data. Progress tracking akan aktif setelah modul
-            Workout Log &amp; Pain Tracker dibangun.
-          </p>
-        </Card>
+        <Link href="/progress">
+          <Card className="grid grid-cols-2 gap-3">
+            <div>
+              <CardTitle>Streak</CardTitle>
+              <p className="tabular font-display text-3xl text-primary-deep">
+                {streak}
+                <span className="ml-1 text-sm font-sans text-muted-foreground">
+                  hari
+                </span>
+              </p>
+            </div>
+            <div>
+              <CardTitle>Sesi 7 hari</CardTitle>
+              <p className="tabular font-display text-3xl text-primary-deep">
+                {week}
+              </p>
+            </div>
+          </Card>
+        </Link>
       </div>
     </div>
   );
