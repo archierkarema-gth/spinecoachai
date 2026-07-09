@@ -78,13 +78,25 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        <Card>
-          <CardTitle>Sesi hari ini</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            AI Decision Engine belum tersedia di milestone ini — halaman
-            Workout masih placeholder.
-          </p>
-        </Card>
+        {latestAssessment && (
+          <Card className="bg-accent text-accent-foreground border-transparent">
+            <CardTitle className="text-accent-foreground/70">
+              Sesi hari ini
+            </CardTitle>
+            <p className="text-sm mb-3">
+              Check-in dulu biar SpineCoach nyusun latihan sesuai kondisi kamu
+              hari ini.
+            </p>
+            <Link href="/checkin">
+              <Button
+                variant="outline"
+                className="w-full border-accent-foreground/30 text-accent-foreground"
+              >
+                Mulai check-in harian
+              </Button>
+            </Link>
+          </Card>
+        )}
 
         <Card>
           <CardTitle>Progres</CardTitle>

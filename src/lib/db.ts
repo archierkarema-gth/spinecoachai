@@ -1,5 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Assessment, User } from "@/lib/schemas";
+import type { CheckIn, Exercise } from "@/lib/exercise-schemas";
+import { EXERCISE_SEED } from "@/lib/exercise-seed";
 
 /**
  * IndexedDB storage layer (docs/09_Tech_Architecture.md: "IndexedDB (MVP)").
@@ -8,7 +10,7 @@ import type { Assessment, User } from "@/lib/schemas";
  */
 
 const DB_NAME = "spinecoach-ai";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 interface SpineCoachDB extends DBSchema {
   users: { key: string; value: User };
@@ -17,8 +19,13 @@ interface SpineCoachDB extends DBSchema {
     value: Assessment;
     indexes: { "by-userId": string };
   };
+  checkIns: {
+    key: string;
+    value: CheckIn;
+    indexes: { "by-userId": string };
+  };
   goals: { key: string; value: unknown };
-  exercises: { key: string; value: unknown };
+  exercises: { key: string; value: Exercise };
   workoutPlans: { key: string; value: unknown };
   workoutLogs: { key: string; value: unknown };
   painLogs: { key: string; value: unknown };
@@ -33,21 +40,27 @@ let dbPromise: Promise<IDBPDatabase<SpineCoachDB>> | null = null;
 export function getDB(): Promise<IDBPDatabase<SpineCoachDB>> {
   if (!dbPromise) {
     dbPromise = openDB<SpineCoachDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        db.createObjectStore("users", { keyPath: "id" });
-        const assessments = db.createObjectStore("assessments", {
-          keyPath: "id",
-        });
-        assessments.createIndex("by-userId", "userId");
-        db.createObjectStore("goals", { keyPath: "id" });
-        db.createObjectStore("exercises", { keyPath: "id" });
-        db.createObjectStore("workoutPlans", { keyPath: "id" });
-        db.createObjectStore("workoutLogs", { keyPath: "id" });
-        db.createObjectStore("painLogs", { keyPath: "id" });
-        db.createObjectStore("recoveryLogs", { keyPath: "id" });
-        db.createObjectStore("photos", { keyPath: "id" });
-        db.createObjectStore("medicalRecords", { keyPath: "id" });
-        db.createObjectStore("reports", { keyPath: "id" });
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore("users", { keyPath: "id" });
+          const assessments = db.createObjectStore("assessments", {
+            keyPath: "id",
+          });
+          assessments.createIndex("by-userId", "userId");
+          db.createObjectStore("goals", { keyPath: "id" });
+          db.createObjectStore("exercises", { keyPath: "id" });
+          db.createObjectStore("workoutPlans", { keyPath: "id" });
+          db.createObjectStore("workoutLogs", { keyPath: "id" });
+          db.createObjectStore("painLogs", { keyPath: "id" });
+          db.createObjectStore("recoveryLogs", { keyPath: "id" });
+          db.createObjectStore("photos", { keyPath: "id" });
+          db.createObjectStore("medicalRecords", { keyPath: "id" });
+          db.createObjectStore("reports", { keyPath: "id" });
+        }
+        if (oldVersion < 2) {
+          const checkIns = db.createObjectStore("checkIns", { keyPath: "id" });
+          checkIns.createIndex("by-userId", "userId");
+        }
       },
     });
   }
@@ -86,5 +99,45 @@ export async function getLatestAssessmentForUser(
   userId: string
 ): Promise<Assessment | undefined> {
   const all = await getAssessmentsForUser(userId);
+  return all.sort((a, b) => b.createdAt - a.createdAt)[0];
+}
+
+/**
+ * Populate the exercises store from the seed the first time the app runs.
+ * Idempotent: if any exercise already exists, nothing is written.
+ */
+export async function seedExercisesIfEmpty(): Promise<void> {
+  const db = await getDB();
+  const count = await db.count("exercises");
+  if (count > 0) return;
+  const tx = db.transaction("exercises", "readwrite");
+  await Promise.all(EXERCISE_SEED.map((ex) => tx.store.put(ex)));
+  await tx.done;
+}
+
+export async function getAllExercises(): Promise<Exercise[]> {
+  const db = await getDB();
+  return db.getAll("exercises");
+}
+
+export async function getExercise(id: string): Promise<Exercise | undefined> {
+  const db = await getDB();
+  return db.get("exercises", id);
+}
+
+export async function putCheckIn(checkIn: CheckIn): Promise<void> {
+  const db = await getDB();
+  await db.put("checkIns", checkIn);
+}
+
+export async function getCheckInsForUser(userId: string): Promise<CheckIn[]> {
+  const db = await getDB();
+  return db.getAllFromIndex("checkIns", "by-userId", userId);
+}
+
+export async function getLatestCheckInForUser(
+  userId: string
+): Promise<CheckIn | undefined> {
+  const all = await getCheckInsForUser(userId);
   return all.sort((a, b) => b.createdAt - a.createdAt)[0];
 }
