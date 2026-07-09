@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/*
+  SpineCoach AI design tokens.
+  Palette carried over from the approved product mockup: teal (calm, physio),
+  coral (primary action), sage (safe / positive), amber (caution).
+*/
+:root {
+  --background: #f6f2ea;
+  --foreground: #1c2b29;
+  --muted-foreground: #4a5b58;
+  --card: #ffffff;
+  --border: #dcd4c4;
+
+  --primary: #2f6f6b;
+  --primary-foreground: #ffffff;
+  --primary-deep: #1d4b48;
+
+  --accent: #e2703f;
+  --accent-foreground: #ffffff;
+
+  --success: #5e9179;
+  --warning: #c98b2e;
+  --destructive: #c94f3d;
+
+  --radius: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #12191a;
+    --foreground: #ede7da;
+    --muted-foreground: #a9b8b3;
+    --card: #1b2523;
+    --border: #2c3735;
+
+    --primary: #5fa39c;
+    --primary-foreground: #0e1414;
+    --primary-deep: #3e7a74;
+
+    --accent: #f08a56;
+    --accent-foreground: #1c2b29;
+
+    --success: #7fb89a;
+    --warning: #e0ae5c;
+    --destructive: #e37a67;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-deep: var(--primary-deep);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --radius-md: var(--radius);
+
+  --font-display: "Charter", "Iowan Old Style", Georgia, serif;
+  --font-sans: Optima, "Segoe UI", "Noto Sans", sans-serif;
+  --font-mono: "SF Mono", "Menlo", monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
