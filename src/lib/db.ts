@@ -2,6 +2,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Assessment, User } from "@/lib/schemas";
 import type { CheckIn, Exercise } from "@/lib/exercise-schemas";
 import type { PainLog, WorkoutLog } from "@/lib/log-schemas";
+import type { Photo } from "@/lib/media-schemas";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 
 /**
@@ -11,7 +12,7 @@ import { EXERCISE_SEED } from "@/lib/exercise-seed";
  */
 
 const DB_NAME = "spinecoach-ai";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 interface SpineCoachDB extends DBSchema {
   users: { key: string; value: User };
@@ -39,7 +40,11 @@ interface SpineCoachDB extends DBSchema {
     indexes: { "by-userId": string };
   };
   recoveryLogs: { key: string; value: unknown };
-  photos: { key: string; value: unknown };
+  photos: {
+    key: string;
+    value: Photo;
+    indexes: { "by-userId": string };
+  };
   medicalRecords: { key: string; value: unknown };
   reports: { key: string; value: unknown };
 }
@@ -66,7 +71,8 @@ export function getDB(): Promise<IDBPDatabase<SpineCoachDB>> {
           const painLogs = db.createObjectStore("painLogs", { keyPath: "id" });
           painLogs.createIndex("by-userId", "userId");
           db.createObjectStore("recoveryLogs", { keyPath: "id" });
-          db.createObjectStore("photos", { keyPath: "id" });
+          const photos = db.createObjectStore("photos", { keyPath: "id" });
+          photos.createIndex("by-userId", "userId");
           db.createObjectStore("medicalRecords", { keyPath: "id" });
           db.createObjectStore("reports", { keyPath: "id" });
         }
@@ -78,6 +84,9 @@ export function getDB(): Promise<IDBPDatabase<SpineCoachDB>> {
           // Stores existed since v1 without the by-userId index; add it now.
           tx.objectStore("workoutLogs").createIndex("by-userId", "userId");
           tx.objectStore("painLogs").createIndex("by-userId", "userId");
+        }
+        if (oldVersion >= 1 && oldVersion < 4) {
+          tx.objectStore("photos").createIndex("by-userId", "userId");
         }
       },
     });
@@ -184,4 +193,45 @@ export async function getPainLogsForUser(userId: string): Promise<PainLog[]> {
   const db = await getDB();
   const all = await db.getAllFromIndex("painLogs", "by-userId", userId);
   return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function putPhoto(photo: Photo): Promise<void> {
+  const db = await getDB();
+  await db.put("photos", photo);
+}
+
+/** Progress photos for a user, newest first. */
+export async function getPhotosForUser(userId: string): Promise<Photo[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("photos", "by-userId", userId);
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function deletePhoto(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete("photos", id);
+}
+
+/**
+ * Wipe every user-generated record (Settings → reset). Leaves the exercises
+ * store intact so the app still has its library on next load.
+ */
+export async function resetUserData(): Promise<void> {
+  const db = await getDB();
+  const stores = [
+    "users",
+    "assessments",
+    "checkIns",
+    "goals",
+    "workoutPlans",
+    "workoutLogs",
+    "painLogs",
+    "recoveryLogs",
+    "photos",
+    "medicalRecords",
+    "reports",
+  ] as const;
+  const tx = db.transaction(stores, "readwrite");
+  await Promise.all(stores.map((s) => tx.objectStore(s).clear()));
+  await tx.done;
 }
