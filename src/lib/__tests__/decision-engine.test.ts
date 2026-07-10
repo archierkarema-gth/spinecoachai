@@ -11,6 +11,7 @@ import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import type { Assessment } from "@/lib/schemas";
 import type { CheckIn } from "@/lib/exercise-schemas";
 import type { WorkoutLog } from "@/lib/log-schemas";
+import { exerciseSchema } from "@/lib/exercise-schemas";
 
 const noRedFlags = {
   neurologicalSymptoms: false,
@@ -266,5 +267,30 @@ describe("generateSession — personalization", () => {
       })
     );
     expect(result.escalated).toBe(true);
+  });
+});
+
+describe("EXERCISE_SEED integrity", () => {
+  it("is entirely bodyweight", () => {
+    expect(EXERCISE_SEED.every((e) => e.equipment.length === 0)).toBe(true);
+  });
+
+  it("every entry validates against the schema", () => {
+    for (const ex of EXERCISE_SEED) {
+      expect(() => exerciseSchema.parse(ex)).not.toThrow();
+    }
+  });
+
+  it("has unique ids and resolvable progression/regression links", () => {
+    const ids = new Set(EXERCISE_SEED.map((e) => e.id));
+    expect(ids.size).toBe(EXERCISE_SEED.length);
+    for (const ex of EXERCISE_SEED) {
+      if (ex.progressionId) expect(ids.has(ex.progressionId)).toBe(true);
+      if (ex.regressionId) expect(ids.has(ex.regressionId)).toBe(true);
+    }
+  });
+
+  it("has at least 5 strength movements after expansion", () => {
+    expect(EXERCISE_SEED.filter((e) => e.domain === "strength").length).toBeGreaterThanOrEqual(5);
   });
 });
