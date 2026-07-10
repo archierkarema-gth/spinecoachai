@@ -44,6 +44,36 @@ export interface EngineInputs {
   recentSessionTimestamps: number[];
 }
 
+export interface GoalWeights {
+  posture: number;
+  strength: number;
+  mobility: number;
+  pain: number;
+}
+
+const GOAL_KEYWORDS: Record<keyof GoalWeights, string[]> = {
+  posture: ["postur", "tegap", "posture"],
+  strength: ["kekuatan", "strength", "otot", "kuat"],
+  mobility: ["mobil", "lentur", "fleks"],
+  pain: ["nyeri", "sakit", "pain"],
+};
+
+/**
+ * Derive focus weights from the free-text primaryGoals. Deterministic keyword
+ * scan; when nothing matches, fall back to a balanced posture+strength default.
+ * Weights bias per-domain slot counts, never add or remove safety domains.
+ */
+export function deriveGoalWeights(assessment: Assessment): GoalWeights {
+  const text = (assessment.primaryGoals ?? "").toLowerCase();
+  const weights: GoalWeights = { posture: 0, strength: 0, mobility: 0, pain: 0 };
+  for (const key of Object.keys(GOAL_KEYWORDS) as (keyof GoalWeights)[]) {
+    if (GOAL_KEYWORDS[key].some((kw) => text.includes(kw))) weights[key] = 1;
+  }
+  const anyMatch = Object.values(weights).some((v) => v > 0);
+  if (!anyMatch) return { posture: 1, strength: 1, mobility: 0, pain: 0 };
+  return weights;
+}
+
 // Difficulty ceiling for each intensity — the engine never picks a movement
 // harder than the day allows.
 const DIFFICULTY_CEILING: Record<SessionIntensity, number> = {

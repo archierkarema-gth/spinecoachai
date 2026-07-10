@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   decideIntensity,
   generateSession,
+  deriveGoalWeights,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
@@ -117,5 +118,31 @@ describe("generateSession — building", () => {
   it("produces reasoning for every non-escalated session", () => {
     const result = generateSession(inputs());
     expect(result.reasoning.length).toBeGreaterThan(0);
+  });
+});
+
+describe("deriveGoalWeights", () => {
+  it("weights posture and strength when both keywords appear", () => {
+    const w = deriveGoalWeights({
+      ...baseAssessment,
+      primaryGoals: "Postur tegap dan tambah kekuatan otot",
+    });
+    expect(w.posture).toBeGreaterThan(0);
+    expect(w.strength).toBeGreaterThan(0);
+  });
+
+  it("falls back to a balanced posture+strength default when nothing matches", () => {
+    const w = deriveGoalWeights({ ...baseAssessment, primaryGoals: "xyz" });
+    expect(w.posture).toBe(w.strength);
+    expect(w.posture).toBeGreaterThan(0);
+  });
+
+  it("detects pain and mobility keywords", () => {
+    const w = deriveGoalWeights({
+      ...baseAssessment,
+      primaryGoals: "Kurangi nyeri dan tingkatkan mobilitas",
+    });
+    expect(w.pain).toBeGreaterThan(0);
+    expect(w.mobility).toBeGreaterThan(0);
   });
 });
