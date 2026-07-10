@@ -4,6 +4,7 @@ import type { CheckIn, Exercise } from "@/lib/exercise-schemas";
 import type { PainLog, WorkoutLog } from "@/lib/log-schemas";
 import type { Photo } from "@/lib/media-schemas";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
+import { SEED_USER, SEED_ASSESSMENT } from "@/lib/personal-seed";
 
 /**
  * IndexedDB storage layer (docs/09_Tech_Architecture.md: "IndexedDB (MVP)").
@@ -127,6 +128,34 @@ export async function getLatestAssessmentForUser(
 ): Promise<Assessment | undefined> {
   const all = await getAssessmentsForUser(userId);
   return all.sort((a, b) => b.createdAt - a.createdAt)[0];
+}
+
+/**
+ * Import the owner's pre-existing (paper) assessment when the app has a profile
+ * but no assessment on record — the reported state where the user onboarded
+ * before the assessment form existed. Attaches the assessment to the existing
+ * user if there is one; otherwise creates the seed profile too.
+ *
+ * Idempotent and non-destructive: it writes only when zero assessments exist,
+ * so once the owner has any assessment (this seed or a real one) it never runs
+ * again and never clobbers real data. See lib/personal-seed.ts for provenance.
+ */
+export async function seedPersonalDataIfEmpty(): Promise<void> {
+  const db = await getDB();
+  if ((await db.count("assessments")) > 0) return;
+
+  const now = Date.now();
+  const existing = (await db.getAll("users"))[0];
+  const userId = existing?.id ?? SEED_USER.id;
+  if (!existing) {
+    await db.put("users", { ...SEED_USER, createdAt: now });
+  }
+  await db.put("assessments", {
+    ...SEED_ASSESSMENT,
+    id: crypto.randomUUID(),
+    userId,
+    createdAt: now,
+  });
 }
 
 /**

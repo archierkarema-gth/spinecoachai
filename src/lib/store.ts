@@ -8,6 +8,7 @@ import {
   getLatestCheckInForUser,
   getWorkoutLogsForUser,
   seedExercisesIfEmpty,
+  seedPersonalDataIfEmpty,
 } from "@/lib/db";
 
 interface AppState {
@@ -32,6 +33,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   hydrate: async () => {
     await seedExercisesIfEmpty();
+    await seedPersonalDataIfEmpty();
     const user = (await getFirstUser()) ?? null;
     const [latestAssessment, latestCheckIn, workoutLogs] = user
       ? await Promise.all([
