@@ -50,6 +50,8 @@ export default function WorkoutPage() {
       checkIn: latestCheckIn,
       exercises,
       recentSessionTimestamps: workoutLogs.map((l) => l.createdAt),
+      // Feeds deriveCapability so completed sessions ratchet difficulty over time.
+      workoutLogs,
     });
   }, [latestAssessment, latestCheckIn, exercises, workoutLogs]);
 
