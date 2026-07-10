@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { TopBar } from "@/components/nav/top-bar";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
   type GeneratedSession,
 } from "@/lib/decision-engine";
 import type { Exercise, SideEmphasis } from "@/lib/exercise-schemas";
+import { SessionPlayer } from "@/components/workout/session-player";
+import type { CompletedExercise } from "@/lib/log-schemas";
 
 const SIDE_LABEL: Record<SideEmphasis, string> = {
   bilateral: "Kiri + kanan",
@@ -34,6 +36,7 @@ export default function WorkoutPage() {
   } = useAppStore();
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     if (!hydrated) hydrate();
@@ -55,7 +58,10 @@ export default function WorkoutPage() {
     });
   }, [latestAssessment, latestCheckIn, exercises, workoutLogs]);
 
-  async function finishSession() {
+  async function finishSession(result: {
+    completed: CompletedExercise[];
+    postSessionPain: number;
+  }) {
     if (!user || !session) return;
     setSaving(true);
     await putWorkoutLog({
@@ -65,14 +71,8 @@ export default function WorkoutPage() {
       movementFocus: session.movementFocus,
       intensity: session.intensity,
       estimatedMinutes: session.estimatedMinutes,
-      exercises: session.blocks.flatMap((b) =>
-        b.exercises.map((ex) => ({
-          exerciseId: ex.id,
-          name: ex.name,
-          domain: ex.domain,
-          completed: true,
-        }))
-      ),
+      exercises: result.completed,
+      postSessionPain: result.postSessionPain,
     });
     await refreshLogs();
     router.push("/progress");
@@ -141,6 +141,16 @@ export default function WorkoutPage() {
   }
 
   if (!session) return null;
+
+  if (playing) {
+    return (
+      <SessionPlayer
+        session={session}
+        onFinish={finishSession}
+        onExit={() => setPlaying(false)}
+      />
+    );
+  }
 
   return (
     <div>
@@ -211,9 +221,8 @@ export default function WorkoutPage() {
           </Card>
         ))}
 
-        <Button size="lg" onClick={finishSession} disabled={saving || !user}>
-          <CheckCircle2 size={18} />
-          {saving ? "Menyimpan…" : "Selesaikan sesi"}
+        <Button size="lg" onClick={() => setPlaying(true)} disabled={!user}>
+          Mulai sesi
         </Button>
 
         <p className="px-1 text-xs text-muted-foreground">
