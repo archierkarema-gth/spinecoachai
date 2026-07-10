@@ -99,6 +99,7 @@ describe("generateSession — safety", () => {
     expect(result.escalated).toBe(false);
     expect(result.intensity).toBe("recovery");
     expect(result.blocks.some((b) => b.domain === "strength")).toBe(false);
+    expect(result.blocks.flatMap((b) => b.exercises).length).toBeGreaterThan(0);
   });
 });
 

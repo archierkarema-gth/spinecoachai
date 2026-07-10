@@ -279,7 +279,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     const max = intensity === "recovery" ? 2 : boosted ? 3 : 2;
     const picks =
       intensity === "recovery"
-        ? pickForDomain(exercises, step.domain, 0, 0, max)
+        ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.advanced, max)
         : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max);
     const fitted: Exercise[] = [];
     for (const ex of picks) {
