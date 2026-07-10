@@ -38,6 +38,10 @@ export function SessionPlayer({
   const step = steps[index];
   const timer = useCountdown(step?.seconds ?? 0, { autoStart: true });
 
+  useEffect(() => {
+    if (steps.length === 0) setShowSummary(true);
+  }, [steps.length]);
+
   // Rest auto-advances when its countdown hits 0; exercise phases never
   // auto-advance (hybrid timing — they wait for a tap).
   useEffect(() => {
@@ -53,6 +57,7 @@ export function SessionPlayer({
 
   function goNext() {
     if (index + 1 >= steps.length) {
+      timer.pause();
       setShowSummary(true);
     } else {
       setIndex((i) => i + 1);
@@ -103,7 +108,10 @@ export function SessionPlayer({
     );
   }
 
-  if (!step) return null;
+  if (!step && !showSummary) {
+    // no steps to play (empty session) — go straight to the wrap-up
+    return null;
+  }
 
   return (
     <div className="flex flex-col gap-4 px-5 pb-8">
@@ -122,7 +130,7 @@ export function SessionPlayer({
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
         <div
           className="h-full bg-primary transition-all"
-          style={{ width: `${(doneExerciseSteps / totalExerciseSteps) * 100}%` }}
+          style={{ width: `${totalExerciseSteps ? (doneExerciseSteps / totalExerciseSteps) * 100 : 0}%` }}
         />
       </div>
 
