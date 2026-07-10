@@ -105,11 +105,6 @@ export function SessionPlayer({
     );
   }
 
-  if (!step && !showSummary) {
-    // no steps to play (empty session) — go straight to the wrap-up
-    return null;
-  }
-
   return (
     <div className="flex flex-col gap-4 px-5 pb-8">
       <div className="flex items-center justify-between">

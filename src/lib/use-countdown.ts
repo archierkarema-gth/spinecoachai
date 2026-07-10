@@ -12,6 +12,7 @@ export function useCountdown(
 ) {
   const [remaining, setRemaining] = useState(seconds);
   const [running, setRunning] = useState(opts.autoStart ?? false);
+  const [nonce, setNonce] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clear = useCallback(() => {
@@ -34,7 +35,7 @@ export function useCountdown(
       });
     }, 1000);
     return clear;
-  }, [running, clear]);
+  }, [running, clear, nonce]);
 
   const start = useCallback(() => setRunning(true), []);
   const pause = useCallback(() => {
@@ -46,6 +47,7 @@ export function useCountdown(
       clear();
       setRemaining(next);
       setRunning(true);
+      setNonce((n) => n + 1);
     },
     [clear]
   );
