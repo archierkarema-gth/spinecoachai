@@ -202,6 +202,9 @@ export function pickForDomain(
   const result: Exercise[] = [];
 
   // Generic balance: if we have both sides and room for a pair, take one each.
+  // Pairs easiest-left with easiest-right for GENERIC symmetry only — not
+  // curve-specific targeting; with the symmetric seed these are the same
+  // movement family.
   if (lefts.length > 0 && rights.length > 0 && max >= 2) {
     result.push(lefts[0], rights[0]);
   }
@@ -272,6 +275,8 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
   for (const step of sequence) {
+    // mobility and pain weights are currently informational only (per spec §4);
+    // only posture and strength influence per-domain slot boosting below.
     const boosted =
       (step.domain === "strength" && weights.strength > 0) ||
       ((step.domain === "stability" || step.domain === "breathing") &&
@@ -279,7 +284,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     const max = intensity === "recovery" ? 2 : boosted ? 3 : 2;
     const picks =
       intensity === "recovery"
-        ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.advanced, max)
+        ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max)
         : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max);
     const fitted: Exercise[] = [];
     for (const ex of picks) {
