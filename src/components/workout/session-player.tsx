@@ -32,15 +32,12 @@ export function SessionPlayer({
   const steps = useMemo(() => buildSteps(session), [session]);
   const [index, setIndex] = useState(0);
   const [statuses, setStatuses] = useState<Record<string, PhaseStatus>>({});
-  const [showSummary, setShowSummary] = useState(false);
+  // Start already in the summary when there is nothing to play (empty session).
+  const [showSummary, setShowSummary] = useState(steps.length === 0);
   const [pain, setPain] = useState(2);
 
   const step = steps[index];
   const timer = useCountdown(step?.seconds ?? 0, { autoStart: true });
-
-  useEffect(() => {
-    if (steps.length === 0) setShowSummary(true);
-  }, [steps.length]);
 
   // Rest auto-advances when its countdown hits 0; exercise phases never
   // auto-advance (hybrid timing — they wait for a tap).

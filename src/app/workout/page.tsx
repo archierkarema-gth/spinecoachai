@@ -35,7 +35,6 @@ export default function WorkoutPage() {
     refreshLogs,
   } = useAppStore();
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
-  const [saving, setSaving] = useState(false);
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
@@ -63,7 +62,6 @@ export default function WorkoutPage() {
     postSessionPain: number;
   }) {
     if (!user || !session) return;
-    setSaving(true);
     await putWorkoutLog({
       id: crypto.randomUUID(),
       userId: user.id,
