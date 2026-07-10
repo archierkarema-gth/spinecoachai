@@ -3,11 +3,13 @@ import {
   decideIntensity,
   generateSession,
   deriveGoalWeights,
+  deriveCapability,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import type { Assessment } from "@/lib/schemas";
 import type { CheckIn } from "@/lib/exercise-schemas";
+import type { WorkoutLog } from "@/lib/log-schemas";
 
 const noRedFlags = {
   neurologicalSymptoms: false,
@@ -144,5 +146,57 @@ describe("deriveGoalWeights", () => {
     });
     expect(w.pain).toBeGreaterThan(0);
     expect(w.mobility).toBeGreaterThan(0);
+  });
+});
+
+function log(overrides: Partial<WorkoutLog> = {}): WorkoutLog {
+  return {
+    id: "w1",
+    userId: "u1",
+    createdAt: 1_000,
+    movementFocus: "x",
+    intensity: "moderate",
+    estimatedMinutes: 20,
+    exercises: [
+      { exerciseId: "e1", name: "e1", domain: "core", completed: true },
+    ],
+    postSessionPain: 1,
+    ...overrides,
+  };
+}
+
+describe("deriveCapability", () => {
+  it("starts an active user at intermediate", () => {
+    const cap = deriveCapability({ ...baseAssessment, activityLevel: "active" }, []);
+    expect(cap.floorRank).toBe(2);
+  });
+
+  it("starts a sedentary user at beginner", () => {
+    const cap = deriveCapability({ ...baseAssessment, activityLevel: "sedentary" }, []);
+    expect(cap.floorRank).toBe(1);
+  });
+
+  it("bumps up after 3 clean, low-pain completions", () => {
+    const cap = deriveCapability(
+      { ...baseAssessment, activityLevel: "light" },
+      [log(), log(), log()]
+    );
+    expect(cap.floorRank).toBe(2);
+  });
+
+  it("drops after a high-pain session", () => {
+    const cap = deriveCapability(
+      { ...baseAssessment, activityLevel: "active" },
+      [log({ postSessionPain: 7 })]
+    );
+    expect(cap.floorRank).toBe(1);
+  });
+
+  it("never exceeds advanced", () => {
+    const cap = deriveCapability(
+      { ...baseAssessment, activityLevel: "active" },
+      [log(), log(), log()]
+    );
+    expect(cap.floorRank).toBeLessThanOrEqual(3);
   });
 });

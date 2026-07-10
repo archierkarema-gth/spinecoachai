@@ -5,6 +5,7 @@ import type {
   Exercise,
   ExerciseDomain,
 } from "@/lib/exercise-schemas";
+import type { WorkoutLog } from "@/lib/log-schemas";
 
 /**
  * AI Decision Engine (docs/05_AI_Decision_Engine.md).
@@ -72,6 +73,47 @@ export function deriveGoalWeights(assessment: Assessment): GoalWeights {
   const anyMatch = Object.values(weights).some((v) => v > 0);
   if (!anyMatch) return { posture: 1, strength: 1, mobility: 0, pain: 0 };
   return weights;
+}
+
+export interface Capability {
+  floorRank: 1 | 2 | 3;
+}
+
+const ACTIVITY_FLOOR: Record<Assessment["activityLevel"], 1 | 2 | 3> = {
+  sedentary: 1,
+  light: 1,
+  moderate: 1,
+  active: 2,
+};
+
+function clampRank(n: number): 1 | 2 | 3 {
+  return Math.min(3, Math.max(1, n)) as 1 | 2 | 3;
+}
+
+/**
+ * Difficulty floor the engine may start from, so a fit user is not locked into
+ * beginner moves. Baseline from activityLevel; earned bump/drop from the most
+ * recent workout logs (source of "stored progression" — no new store).
+ */
+export function deriveCapability(
+  assessment: Assessment,
+  workoutLogs: WorkoutLog[]
+): Capability {
+  let floor: number = ACTIVITY_FLOOR[assessment.activityLevel];
+  const recent = workoutLogs.slice(0, 3);
+  const cleanStreak =
+    recent.length === 3 &&
+    recent.every(
+      (l) => l.exercises.every((e) => e.completed) && (l.postSessionPain ?? 0) <= 3
+    );
+  const latest = workoutLogs[0];
+  const setback =
+    latest !== undefined &&
+    ((latest.postSessionPain ?? 0) >= 6 ||
+      !latest.exercises.every((e) => e.completed));
+  if (cleanStreak) floor += 1;
+  if (setback) floor -= 1;
+  return { floorRank: clampRank(floor) };
 }
 
 // Difficulty ceiling for each intensity — the engine never picks a movement
