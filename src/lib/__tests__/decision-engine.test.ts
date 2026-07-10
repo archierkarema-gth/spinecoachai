@@ -4,6 +4,7 @@ import {
   generateSession,
   deriveGoalWeights,
   deriveCapability,
+  pickForDomain,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
@@ -198,5 +199,71 @@ describe("deriveCapability", () => {
       [log(), log(), log()]
     );
     expect(cap.floorRank).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("pickForDomain", () => {
+  it("excludes any exercise that needs equipment", () => {
+    const geared = {
+      ...EXERCISE_SEED[0],
+      id: "geared",
+      domain: "core" as const,
+      equipment: ["band"],
+      difficulty: "beginner" as const,
+    };
+    const picks = pickForDomain([geared, ...EXERCISE_SEED], "core", 1, 3, 5);
+    expect(picks.some((e) => e.id === "geared")).toBe(false);
+  });
+
+  it("returns a balanced left/right pair when both exist", () => {
+    const picks = pickForDomain(EXERCISE_SEED, "stability", 1, 3, 2);
+    const sides = picks.map((e) => e.sideEmphasis).sort();
+    expect(sides).toEqual(["left", "right"]);
+  });
+
+  it("keeps picks within the difficulty window", () => {
+    const picks = pickForDomain(EXERCISE_SEED, "core", 2, 3, 5);
+    expect(picks.every((e) => e.difficulty !== "beginner")).toBe(true);
+  });
+});
+
+describe("generateSession — personalization", () => {
+  it("an active, ready user gets non-beginner strength work", () => {
+    const result = generateSession(
+      inputs({
+        assessment: {
+          ...baseAssessment,
+          activityLevel: "active",
+          primaryGoals: "Tambah kekuatan otot dan postur tegap",
+        },
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+      })
+    );
+    const strength = result.blocks.find((b) => b.domain === "strength");
+    expect(strength).toBeDefined();
+    expect(strength!.exercises.some((e) => e.difficulty !== "beginner")).toBe(true);
+  });
+
+  it("balanced focus produces both a stability and a strength block", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, activityLevel: "moderate" },
+        checkIn: checkIn({ availableMinutes: 60 }),
+      })
+    );
+    expect(result.blocks.some((b) => b.domain === "stability")).toBe(true);
+    expect(result.blocks.some((b) => b.domain === "strength")).toBe(true);
+  });
+
+  it("still escalates on a red flag", () => {
+    const result = generateSession(
+      inputs({
+        assessment: {
+          ...baseAssessment,
+          redFlags: { ...noRedFlags, trauma: true },
+        },
+      })
+    );
+    expect(result.escalated).toBe(true);
   });
 });

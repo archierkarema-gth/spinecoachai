@@ -43,6 +43,8 @@ export interface EngineInputs {
   exercises: Exercise[];
   /** Timestamps (ms) of recent completed sessions, newest first. */
   recentSessionTimestamps: number[];
+  /** Recent workout logs, newest first — feeds capability. Defaults to []. */
+  workoutLogs?: WorkoutLog[];
 }
 
 export interface GoalWeights {
@@ -165,18 +167,50 @@ export function decideIntensity(checkIn: CheckIn): SessionIntensity {
   return "moderate";
 }
 
-function pickForDomain(
+/**
+ * Pick exercises for a domain within a difficulty window, bodyweight only, with
+ * generic left/right balancing. Never targets a specific curve (docs/04).
+ * Exported for unit testing.
+ */
+export function pickForDomain(
   exercises: Exercise[],
   domain: ExerciseDomain,
-  intensity: SessionIntensity,
+  floorRank: number,
+  ceilingRank: number,
   max: number
 ): Exercise[] {
-  const ceiling = DIFFICULTY_CEILING[intensity];
-  return exercises
-    .filter((ex) => ex.domain === domain)
-    .filter((ex) => intensity === "recovery" || DIFFICULTY_RANK[ex.difficulty] <= ceiling)
-    .sort((a, b) => DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty])
-    .slice(0, max);
+  const bodyweight = exercises.filter(
+    (ex) => ex.domain === domain && ex.equipment.length === 0
+  );
+  const inWindow = bodyweight.filter((ex) => {
+    const r = DIFFICULTY_RANK[ex.difficulty];
+    return r >= floorRank && r <= ceilingRank;
+  });
+  // If the window is empty, relax the floor down to beginner so a block is
+  // never silently dropped; still respect the ceiling (safety).
+  const pool =
+    inWindow.length > 0
+      ? inWindow
+      : bodyweight.filter((ex) => DIFFICULTY_RANK[ex.difficulty] <= ceilingRank);
+
+  const byEasiest = [...pool].sort(
+    (a, b) => DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty]
+  );
+
+  const lefts = byEasiest.filter((e) => e.sideEmphasis === "left");
+  const rights = byEasiest.filter((e) => e.sideEmphasis === "right");
+  const result: Exercise[] = [];
+
+  // Generic balance: if we have both sides and room for a pair, take one each.
+  if (lefts.length > 0 && rights.length > 0 && max >= 2) {
+    result.push(lefts[0], rights[0]);
+  }
+  for (const ex of byEasiest) {
+    if (result.length >= max) break;
+    if (result.includes(ex)) continue;
+    result.push(ex);
+  }
+  return result.slice(0, max);
 }
 
 /**
@@ -230,10 +264,23 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const sequence = intensity === "recovery" ? RECOVERY_SEQUENCE : FULL_SEQUENCE;
   const budgetSeconds = checkIn.availableMinutes * 60;
 
+  const ceilingRank = DIFFICULTY_CEILING[intensity];
+  const capability = deriveCapability(assessment, inputs.workoutLogs ?? []);
+  const floorRank = Math.min(capability.floorRank, ceilingRank);
+  const weights = deriveGoalWeights(assessment);
+
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
   for (const step of sequence) {
-    const picks = pickForDomain(exercises, step.domain, intensity, 2);
+    const boosted =
+      (step.domain === "strength" && weights.strength > 0) ||
+      ((step.domain === "stability" || step.domain === "breathing") &&
+        weights.posture > 0);
+    const max = intensity === "recovery" ? 2 : boosted ? 3 : 2;
+    const picks =
+      intensity === "recovery"
+        ? pickForDomain(exercises, step.domain, 0, 0, max)
+        : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max);
     const fitted: Exercise[] = [];
     for (const ex of picks) {
       if (usedSeconds + ex.durationSeconds > budgetSeconds && blocks.length > 0) {
