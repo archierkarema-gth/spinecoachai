@@ -1,4 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase, getSyncCode } from "@/lib/supabase";
 import {
   getAssessmentsForUser,
   getCheckInsForUser,
@@ -14,11 +14,19 @@ import type { CheckIn } from "@/lib/exercise-schemas";
 import type { WorkoutLog, PainLog } from "@/lib/log-schemas";
 
 /**
- * Optional cloud sync (docs/09 future). Offline-first: every function is a
- * no-op when Supabase isn't configured. Records are append-mostly and carry
- * client-generated UUIDs, so syncing is an id-keyed upsert in each direction
- * — no id remapping, no destructive overwrite.
+ * Cross-device sync (docs/09 future). All synced entities live in a single
+ * `records` table keyed by the user's sync code (`sync_id`). Records are
+ * append-mostly with client-generated UUIDs, so syncing is an id-keyed upsert
+ * in each direction; the local copy always wins on a shared id.
+ *
+ * Local record ids stay stable across devices, but the embedded `userId`
+ * differs per device (each device seeds its own local user). On pull we
+ * rewrite `userId` to the local user's id so the by-userId indexes resolve.
+ *
+ * Photos are intentionally not synced (blobs stay on-device).
  */
+
+export type SyncKind = "assessment" | "check_in" | "workout_log" | "pain_log";
 
 export interface SyncResult {
   ran: boolean;
@@ -26,26 +34,12 @@ export interface SyncResult {
   pulled: number;
 }
 
-/** A synced record as stored in a Supabase table row. */
-interface RemoteRow {
+interface RecordRow {
   id: string;
-  user_id: string;
+  sync_id: string;
+  kind: SyncKind;
   created_at: string;
-  payload: unknown;
-}
-
-/**
- * Union two id-keyed collections, preferring the local copy on id conflict.
- * Pure and deterministic — the core of the merge, kept testable in isolation.
- */
-export function mergeById<T extends { id: string }>(
-  local: T[],
-  remote: T[]
-): T[] {
-  const byId = new Map<string, T>();
-  for (const r of remote) byId.set(r.id, r);
-  for (const l of local) byId.set(l.id, l); // local wins
-  return [...byId.values()];
+  payload: Record<string, unknown>;
 }
 
 /** Records in `remote` whose id is missing from `local` — the pull set. */
@@ -57,109 +51,82 @@ export function idsToPull<T extends { id: string }>(
   return remote.filter((r) => !localIds.has(r.id));
 }
 
-const TABLES = {
-  assessments: "assessments",
-  checkIns: "check_ins",
-  workoutLogs: "workout_logs",
-  painLogs: "pain_logs",
-} as const;
-
-function toRow<T extends { id: string; createdAt: number }>(
-  userId: string,
-  record: T
-): RemoteRow {
-  return {
-    id: record.id,
-    user_id: userId,
-    created_at: new Date(record.createdAt).toISOString(),
-    payload: record,
-  };
-}
-
 /**
- * Two-way sync for one user: upload local records the cloud is missing, then
- * download cloud records the device is missing. Local always wins on a shared
- * id, so nothing already on the device is clobbered.
+ * Two-way sync for one device. Pushes every local record the cloud is missing,
+ * then pulls every cloud record this device is missing, rewriting each pulled
+ * record's userId to the local user's id. No-op when no sync code is set.
  */
-export async function syncAll(userId: string): Promise<SyncResult> {
+export async function syncAll(localUserId: string): Promise<SyncResult> {
+  const syncId = getSyncCode();
+  if (!syncId) return { ran: false, pushed: 0, pulled: 0 };
+
   const supabase = getSupabase();
-  if (!supabase) return { ran: false, pushed: 0, pulled: 0 };
 
   const [assessments, checkIns, workoutLogs, painLogs] = await Promise.all([
-    getAssessmentsForUser(userId),
-    getCheckInsForUser(userId),
-    getWorkoutLogsForUser(userId),
-    getPainLogsForUser(userId),
+    getAssessmentsForUser(localUserId),
+    getCheckInsForUser(localUserId),
+    getWorkoutLogsForUser(localUserId),
+    getPainLogsForUser(localUserId),
   ]);
 
   let pushed = 0;
   let pulled = 0;
 
-  // Push every local record (upsert on id is idempotent).
-  const pushGroups: [string, { id: string; createdAt: number }[]][] = [
-    [TABLES.assessments, assessments],
-    [TABLES.checkIns, checkIns],
-    [TABLES.workoutLogs, workoutLogs],
-    [TABLES.painLogs, painLogs],
+  // Push local records (upsert on id is idempotent).
+  const pushGroups: [SyncKind, { id: string; createdAt: number }[]][] = [
+    ["assessment", assessments],
+    ["check_in", checkIns],
+    ["workout_log", workoutLogs],
+    ["pain_log", painLogs],
   ];
-  for (const [table, records] of pushGroups) {
+  for (const [kind, records] of pushGroups) {
     if (records.length === 0) continue;
-    const rows = records.map((r) => toRow(userId, r));
-    const { error } = await supabase.from(table).upsert(rows, {
-      onConflict: "id",
-    });
-    if (error) throw new Error(`Push ${table} gagal: ${error.message}`);
+    const rows = records.map((r) => ({
+      id: r.id,
+      sync_id: syncId,
+      kind,
+      created_at: new Date(r.createdAt).toISOString(),
+      payload: r as unknown as Record<string, unknown>,
+    }));
+    const { error } = await supabase
+      .from("records")
+      .upsert(rows, { onConflict: "id" });
+    if (error) throw new Error(`Kirim ${kind} gagal: ${error.message}`);
     pushed += rows.length;
   }
 
-  // Pull remote rows this device doesn't have yet, writing the stored payload
-  // back into IndexedDB unchanged.
-  pulled += await pullInto(
-    supabase,
-    TABLES.assessments,
-    userId,
-    assessments,
-    (p) => putAssessment(p as Assessment)
+  // Pull remote records this device is missing.
+  pulled += await pullKind(syncId, "assessment", assessments, (p) =>
+    putAssessment({ ...p, userId: localUserId } as unknown as Assessment)
   );
-  pulled += await pullInto(
-    supabase,
-    TABLES.checkIns,
-    userId,
-    checkIns,
-    (p) => putCheckIn(p as CheckIn)
+  pulled += await pullKind(syncId, "check_in", checkIns, (p) =>
+    putCheckIn({ ...p, userId: localUserId } as unknown as CheckIn)
   );
-  pulled += await pullInto(
-    supabase,
-    TABLES.workoutLogs,
-    userId,
-    workoutLogs,
-    (p) => putWorkoutLog(p as WorkoutLog)
+  pulled += await pullKind(syncId, "workout_log", workoutLogs, (p) =>
+    putWorkoutLog({ ...p, userId: localUserId } as unknown as WorkoutLog)
   );
-  pulled += await pullInto(
-    supabase,
-    TABLES.painLogs,
-    userId,
-    painLogs,
-    (p) => putPainLog(p as PainLog)
+  pulled += await pullKind(syncId, "pain_log", painLogs, (p) =>
+    putPainLog({ ...p, userId: localUserId } as unknown as PainLog)
   );
 
   return { ran: true, pushed, pulled };
 }
 
-async function pullInto(
-  supabase: NonNullable<ReturnType<typeof getSupabase>>,
-  table: string,
-  userId: string,
+async function pullKind(
+  syncId: string,
+  kind: SyncKind,
   local: { id: string }[],
-  write: (payload: unknown) => Promise<void>
+  write: (payload: Record<string, unknown>) => Promise<void>
 ): Promise<number> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
-    .from(table)
-    .select("id, user_id, created_at, payload")
-    .eq("user_id", userId);
-  if (error) throw new Error(`Pull ${table} gagal: ${error.message}`);
+    .from("records")
+    .select("id, sync_id, kind, created_at, payload")
+    .eq("sync_id", syncId)
+    .eq("kind", kind);
+  if (error) throw new Error(`Ambil ${kind} gagal: ${error.message}`);
 
-  const missing = idsToPull(local, (data as RemoteRow[]) ?? []);
+  const missing = idsToPull(local, (data as RecordRow[]) ?? []);
   await Promise.all(missing.map((row) => write(row.payload)));
   return missing.length;
 }

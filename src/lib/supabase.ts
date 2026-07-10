@@ -1,31 +1,49 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Lazily-created Supabase client for the optional cloud-sync layer
- * (docs/09 future). The app is offline-first: if the env vars are absent the
- * client is simply null and every sync call becomes a no-op, so nothing
- * breaks when Supabase isn't configured.
+ * Cloud sync config (docs/09 future layer).
  *
- * Configure by setting these in `.env.local`:
- *   NEXT_PUBLIC_SUPABASE_URL
- *   NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * The URL and anon key are public by design (the anon key ships to every
+ * browser). Data is NOT isolated by auth — instead each user picks a
+ * high-entropy "sync code" that acts as a bearer token: rows are stored under
+ * that code and only someone who knows it can read them back. Suitable for a
+ * personal single-user app; not a substitute for real auth on shared data.
  */
+const SUPABASE_URL = "https://btcjjmgbariyoyshzbzl.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0Y2pqbWdiYXJpeW95c2h6YnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODQ2NTEsImV4cCI6MjA5Nzg2MDY1MX0.dfcZqWOlqT6MY1t0W4jctcgRQlYId1agR0srwP99TsU";
 
-let client: SupabaseClient | null | undefined;
+const SYNC_CODE_KEY = "spinecoach_sync_code";
 
-export function getSupabase(): SupabaseClient | null {
-  if (client !== undefined) return client;
+let client: SupabaseClient | null = null;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  client = url && key ? createClient(url, key) : null;
+export function getSupabase(): SupabaseClient {
+  if (!client) client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   return client;
 }
 
+/** The device's sync code, or null if the user hasn't set one yet. */
+export function getSyncCode(): string | null {
+  if (typeof window === "undefined") return null;
+  const code = window.localStorage.getItem(SYNC_CODE_KEY);
+  return code && code.trim() ? code.trim() : null;
+}
+
+export function setSyncCode(code: string): void {
+  if (typeof window === "undefined") return;
+  const trimmed = code.trim();
+  if (trimmed) window.localStorage.setItem(SYNC_CODE_KEY, trimmed);
+  else window.localStorage.removeItem(SYNC_CODE_KEY);
+}
+
+/** Generate a random, hard-to-guess sync code (bearer token). */
+export function generateSyncCode(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Cloud sync is usable once the user has set a sync code. */
 export function isCloudConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  return getSyncCode() !== null;
 }

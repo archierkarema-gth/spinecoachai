@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { putUser, resetUserData } from "@/lib/db";
-import { isCloudConfigured } from "@/lib/supabase";
+import { getSyncCode, setSyncCode, generateSyncCode } from "@/lib/supabase";
 import { syncAll } from "@/lib/sync";
 
 export default function SettingsPage() {
@@ -19,13 +19,26 @@ export default function SettingsPage() {
   const [age, setAge] = useState(32);
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [cloudReady, setCloudReady] = useState(false);
+  const [syncCode, setSyncCodeInput] = useState("");
+  const [codeSaved, setCodeSaved] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    setCloudReady(isCloudConfigured());
+    setSyncCodeInput(getSyncCode() ?? "");
   }, []);
+
+  function onSaveCode() {
+    setSyncCode(syncCode);
+    setCodeSaved(true);
+    setTimeout(() => setCodeSaved(false), 2000);
+  }
+
+  function onGenerateCode() {
+    const code = generateSyncCode();
+    setSyncCodeInput(code);
+    setSyncCode(code);
+  }
 
   useEffect(() => {
     if (!hydrated) hydrate();
@@ -49,6 +62,7 @@ export default function SettingsPage() {
 
   async function onSync() {
     if (!user) return;
+    setSyncCode(syncCode);
     setSyncing(true);
     setSyncMsg(null);
     try {
@@ -56,7 +70,7 @@ export default function SettingsPage() {
       setSyncMsg(
         result.ran
           ? `Selesai — ${result.pushed} terkirim, ${result.pulled} diunduh.`
-          : "Cloud belum dikonfigurasi."
+          : "Isi kode sync dulu."
       );
       await hydrate();
     } catch (e) {
@@ -106,28 +120,37 @@ export default function SettingsPage() {
         </Card>
 
         <Card className="flex flex-col gap-3">
-          <CardTitle>Cloud sync</CardTitle>
-          {cloudReady ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Sinkronkan asesmen, check-in, sesi, dan catatan nyeri ke
-                Supabase. Foto tetap di perangkat.
-              </p>
-              <Button onClick={onSync} disabled={syncing || !user}>
-                {syncing ? "Menyinkronkan…" : "Sinkronkan sekarang"}
-              </Button>
-              {syncMsg && (
-                <p className="text-xs text-muted-foreground">{syncMsg}</p>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Belum dikonfigurasi. Isi <code>NEXT_PUBLIC_SUPABASE_URL</code> dan{" "}
-              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> di{" "}
-              <code>.env.local</code>, lalu jalankan migrasi di{" "}
-              <code>supabase/migrations</code>.
-            </p>
-          )}
+          <CardTitle>Sync antar perangkat</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Pakai <strong>kode sync</strong> yang sama di semua perangkat untuk
+            menyambungkan data. Asesmen, check-in, sesi, dan catatan nyeri ikut
+            tersinkron. Foto tetap di perangkat.
+          </p>
+          <div>
+            <Label htmlFor="syncCode">Kode sync</Label>
+            <Input
+              id="syncCode"
+              value={syncCode}
+              placeholder="Tempel kode dari perangkat lain"
+              onChange={(e) => setSyncCodeInput(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={onGenerateCode}>
+              Buat kode baru
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={onSaveCode}>
+              {codeSaved ? "Tersimpan" : "Simpan kode"}
+            </Button>
+          </div>
+          <Button onClick={onSync} disabled={syncing || !user || !syncCode.trim()}>
+            {syncing ? "Menyinkronkan…" : "Sinkronkan sekarang"}
+          </Button>
+          {syncMsg && <p className="text-xs text-muted-foreground">{syncMsg}</p>}
+          <p className="text-[11px] text-muted-foreground">
+            Simpan kode ini baik-baik: siapa pun yang tahu kode bisa mengakses
+            datamu. Di perangkat kedua, tempel kode yang sama lalu Sinkronkan.
+          </p>
         </Card>
 
         <Card className="flex flex-col gap-3 border-destructive/40">
