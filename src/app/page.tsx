@@ -19,6 +19,8 @@ async function ensureUser() {
     name: "Archie",
     age: 32,
     createdAt: Date.now(),
+    trainingPreset: "balanced" as const,
+    ownedEquipment: [],
   };
   await putUser(seeded);
   setUser(seeded);

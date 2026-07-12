@@ -20,6 +20,8 @@ export const SEED_USER: Omit<User, "createdAt"> = {
   id: SEED_USER_ID,
   name: "Archie",
   age: 32,
+  trainingPreset: "muscle-priority",
+  ownedEquipment: ["pull-up bar"],
 };
 
 export const SEED_ASSESSMENT: Omit<

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   hasRedFlag,
   newAssessmentInputSchema,
+  userSchema,
   type RedFlagSymptoms,
 } from "@/lib/schemas";
 
@@ -53,5 +54,31 @@ describe("newAssessmentInputSchema", () => {
       primaryGoals: "",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("userSchema personalization fields", () => {
+  it("defaults trainingPreset to balanced and ownedEquipment to empty", () => {
+    const u = userSchema.parse({
+      id: "u1",
+      name: "Test",
+      age: 30,
+      createdAt: 0,
+    });
+    expect(u.trainingPreset).toBe("balanced");
+    expect(u.ownedEquipment).toEqual([]);
+  });
+
+  it("accepts muscle-priority and an equipment list", () => {
+    const u = userSchema.parse({
+      id: "u1",
+      name: "Test",
+      age: 30,
+      createdAt: 0,
+      trainingPreset: "muscle-priority",
+      ownedEquipment: ["pull-up bar"],
+    });
+    expect(u.trainingPreset).toBe("muscle-priority");
+    expect(u.ownedEquipment).toEqual(["pull-up bar"]);
   });
 });
