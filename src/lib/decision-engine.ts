@@ -47,6 +47,8 @@ export interface EngineInputs {
   workoutLogs?: WorkoutLog[];
   /** Equipment the user owns; unlocks geared moves. Defaults to []. */
   ownedEquipment?: string[];
+  /** Owner-only session mix preset. Defaults to "balanced". */
+  preset?: "balanced" | "muscle-priority";
 }
 
 export interface GoalWeights {
@@ -148,6 +150,34 @@ const RECOVERY_SEQUENCE: { domain: ExerciseDomain; label: string }[] = [
   { domain: "mobility", label: "Mobilitas" },
   { domain: "recovery", label: "Pemulihan" },
 ];
+
+const MUSCLE_DOMAINS = new Set<ExerciseDomain>(["strength", "conditioning"]);
+const CORRECTIVE_DOMAINS = new Set<ExerciseDomain>([
+  "breathing",
+  "mobility",
+  "stability",
+]);
+
+/**
+ * Per-domain slot count. Under "muscle-priority" the muscle domains get more
+ * slots and corrective domains are trimmed to a single slot each — pushing the
+ * session-time mix toward ~70/30 while never zeroing corrective work. The time
+ * budget still caps total volume.
+ */
+function slotMaxFor(
+  domain: ExerciseDomain,
+  intensity: SessionIntensity,
+  preset: "balanced" | "muscle-priority",
+  boosted: boolean
+): number {
+  if (intensity === "recovery") return 2;
+  if (preset === "muscle-priority") {
+    if (MUSCLE_DOMAINS.has(domain)) return 4;
+    if (CORRECTIVE_DOMAINS.has(domain)) return 1;
+    return 1; // core/balance/recovery: keep light so muscle dominates
+  }
+  return boosted ? 3 : 2;
+}
 
 /**
  * Decide the day's intensity from check-in signals. Safety and recovery come
@@ -287,6 +317,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const preferHardest = capability.floorRank >= 2;
   const weights = deriveGoalWeights(assessment);
   const allowedEquipment = new Set(inputs.ownedEquipment ?? []);
+  const preset = inputs.preset ?? "balanced";
 
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
@@ -297,14 +328,25 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
       (step.domain === "strength" && weights.strength > 0) ||
       ((step.domain === "stability" || step.domain === "breathing") &&
         weights.posture > 0);
-    const max = intensity === "recovery" ? 2 : boosted ? 3 : 2;
+    const max = slotMaxFor(step.domain, intensity, preset, boosted);
+    // Under muscle-priority, widen the floor for muscle domains to beginner so
+    // the extra slots actually fill from the full 1–3 window; preferHardest
+    // still leads with the hardest in-window move. Ceiling (safety) untouched.
+    const muscleWidened =
+      preset === "muscle-priority" && MUSCLE_DOMAINS.has(step.domain);
+    const effectiveFloor = muscleWidened ? 1 : floorRank;
+    // Hardest-first surfacing is for muscle work; under muscle-priority don't
+    // bias corrective domains toward their hardest variant.
+    const effectivePreferHardest =
+      preferHardest &&
+      !(preset === "muscle-priority" && CORRECTIVE_DOMAINS.has(step.domain));
     const picks =
       intensity === "recovery"
         ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max, {
             allowedEquipment,
           })
-        : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max, {
-            preferHardest,
+        : pickForDomain(exercises, step.domain, effectiveFloor, ceilingRank, max, {
+            preferHardest: effectivePreferHardest,
             allowedEquipment,
           });
     const fitted: Exercise[] = [];
@@ -329,6 +371,12 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
 
   if (blocks.flatMap((b) => b.exercises).some((e) => e.difficulty === "advanced")) {
     reasoning.push("Kesiapan & progres bagus — termasuk variasi tingkat lanjut.");
+  }
+
+  if (preset === "muscle-priority") {
+    reasoning.push(
+      "Preset kamu: fokus utama pembentukan otot, tetap sisipkan korektif skoliosis."
+    );
   }
 
   const focus =

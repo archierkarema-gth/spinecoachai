@@ -341,6 +341,55 @@ describe("generateSession — equipment allowlist", () => {
   });
 });
 
+describe("generateSession — muscle-priority preset", () => {
+  const longReady = {
+    assessment: {
+      ...baseAssessment,
+      activityLevel: "active" as const,
+      availableMinutesPerDay: 90,
+    },
+    checkIn: checkIn({
+      painLevel: 1,
+      recovery: 5,
+      energyLevel: 5,
+      sleepQuality: 5,
+      availableMinutes: 90,
+    }),
+    workoutLogs: [log(), log(), log()],
+  };
+
+  const MUSCLE = new Set(["strength", "conditioning"]);
+  const CORRECTIVE = new Set(["breathing", "mobility", "stability"]);
+
+  function timeByGroup(blocks: { domain: string; exercises: { durationSeconds: number }[] }[]) {
+    let muscle = 0;
+    let corrective = 0;
+    for (const b of blocks) {
+      const t = b.exercises.reduce((s, e) => s + e.durationSeconds, 0);
+      if (MUSCLE.has(b.domain)) muscle += t;
+      else if (CORRECTIVE.has(b.domain)) corrective += t;
+    }
+    return { muscle, corrective };
+  }
+
+  it("weights muscle time above corrective time under muscle-priority", () => {
+    const balanced = generateSession(inputs({ ...longReady, preset: "balanced" }));
+    const priority = generateSession(inputs({ ...longReady, preset: "muscle-priority" }));
+    const b = timeByGroup(balanced.blocks);
+    const p = timeByGroup(priority.blocks);
+    const balancedShare = b.muscle / (b.muscle + b.corrective);
+    const priorityShare = p.muscle / (p.muscle + p.corrective);
+    expect(priorityShare).toBeGreaterThan(balancedShare);
+    expect(priorityShare).toBeGreaterThan(0.55);
+  });
+
+  it("never drops corrective work to zero under muscle-priority", () => {
+    const priority = generateSession(inputs({ ...longReady, preset: "muscle-priority" }));
+    const p = timeByGroup(priority.blocks);
+    expect(p.corrective).toBeGreaterThan(0);
+  });
+});
+
 describe("EXERCISE_SEED integrity", () => {
   it("bodyweight moves have no equipment; geared moves list only known equipment", () => {
     const known = new Set(["pull-up bar"]);
