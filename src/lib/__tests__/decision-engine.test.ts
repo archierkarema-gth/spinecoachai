@@ -413,6 +413,47 @@ function wlog(
   };
 }
 
+describe("generateSession — M9 duration overload", () => {
+  const twoCleanDeadBug = [
+    wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+  ];
+
+  it("bumps a move's duration after 2 clean sessions", () => {
+    const s = generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+        workoutLogs: twoCleanDeadBug,
+      })
+    );
+    const dead = s.blocks
+      .flatMap((b) => b.exercises)
+      .find((e) => e.id === "ex-dead-bug");
+    expect(dead?.durationSeconds).toBe(75); // seed base 60 + 15
+  });
+
+  it("adds a reasoning line when a move is bumped", () => {
+    const s = generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+        workoutLogs: twoCleanDeadBug,
+      })
+    );
+    expect(s.reasoning.some((r) => r.includes("naik durasi"))).toBe(true);
+  });
+
+  it("does not mutate the seed exercise", () => {
+    generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+        workoutLogs: twoCleanDeadBug,
+      })
+    );
+    const seed = EXERCISE_SEED.find((e) => e.id === "ex-dead-bug");
+    expect(seed?.durationSeconds).toBe(60);
+  });
+});
+
 describe("countCleanStreak", () => {
   it("counts a clean run, newest-first", () => {
     const logs = [
