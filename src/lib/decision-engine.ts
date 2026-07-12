@@ -144,6 +144,24 @@ export function countCleanStreak(
   return streak;
 }
 
+/** Duration ceiling added by progression (M9, moderate cadence). */
+const PROGRESS_STEP_SECONDS = 15;
+const PROGRESS_CAP_SECONDS = 45;
+const PROGRESS_STREAK_AT_CAP = 6; // 3 steps × 2 clean sessions each
+
+/**
+ * Prescribed hold for a move given its clean streak: +15s per 2 clean
+ * sessions, capped at +45s over the seed base. Deterministic; the seed
+ * duration is never mutated (caller clones).
+ */
+export function progressedDuration(base: number, streak: number): number {
+  const bump = Math.min(
+    PROGRESS_STEP_SECONDS * Math.floor(streak / 2),
+    PROGRESS_CAP_SECONDS
+  );
+  return base + bump;
+}
+
 // Difficulty ceiling for each intensity — the engine never picks a movement
 // harder than the day allows.
 const DIFFICULTY_CEILING: Record<SessionIntensity, number> = {

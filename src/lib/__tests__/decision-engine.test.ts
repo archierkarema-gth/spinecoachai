@@ -6,6 +6,7 @@ import {
   deriveCapability,
   pickForDomain,
   countCleanStreak,
+  progressedDuration,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
@@ -477,5 +478,22 @@ describe("EXERCISE_SEED integrity", () => {
 
   it("has at least 5 strength movements after expansion", () => {
     expect(EXERCISE_SEED.filter((e) => e.domain === "strength").length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+describe("progressedDuration", () => {
+  it("holds at base below 2 clean sessions", () => {
+    expect(progressedDuration(60, 0)).toBe(60);
+    expect(progressedDuration(60, 1)).toBe(60);
+  });
+
+  it("adds 15s per 2 clean sessions", () => {
+    expect(progressedDuration(60, 2)).toBe(75);
+    expect(progressedDuration(60, 4)).toBe(90);
+  });
+
+  it("caps at +45s", () => {
+    expect(progressedDuration(60, 6)).toBe(105);
+    expect(progressedDuration(60, 20)).toBe(105);
   });
 });
