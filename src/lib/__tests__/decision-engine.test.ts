@@ -242,16 +242,18 @@ describe("pickForDomain", () => {
 });
 
 describe("generateSession — advanced surfacing", () => {
-  it("programs an advanced move for a capable, full-readiness user", () => {
+  it("leads the strength block with the hardest move for a capable, full-readiness user", () => {
     const result = generateSession(
       inputs({
         assessment: { ...baseAssessment, activityLevel: "active" },
         checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
-        workoutLogs: [log(), log(), log()],
       })
     );
-    const all = result.blocks.flatMap((b) => b.exercises);
-    expect(all.some((e) => e.difficulty === "advanced")).toBe(true);
+    const strength = result.blocks.find((b) => b.domain === "strength");
+    expect(strength).toBeDefined();
+    // Hardest-first: the first picked strength move must be advanced. Easiest-first
+    // (the pre-fix behavior) would lead with a beginner move, failing this.
+    expect(strength!.exercises[0].difficulty).toBe("advanced");
   });
 
   it("keeps a genuine beginner on easiest moves even at full readiness", () => {
