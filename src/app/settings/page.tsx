@@ -8,9 +8,28 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
+import type { TrainingPreset } from "@/lib/schemas";
 import { putUser, resetUserData } from "@/lib/db";
 import { getSyncCode, setSyncCode, generateSyncCode } from "@/lib/supabase";
 import { syncAll } from "@/lib/sync";
+
+const PRESETS: { value: TrainingPreset; label: string; desc: string }[] = [
+  { value: "balanced", label: "Seimbang", desc: "Porsi merata semua domain." },
+  {
+    value: "muscle-priority",
+    label: "Fokus otot (70/30)",
+    desc: "Utamakan pembentukan otot, tetap sisipkan korektif skoliosis.",
+  },
+];
+
+// Only equipment referenced by the exercise seed is offered here.
+const EQUIPMENT: { value: string; label: string; desc: string }[] = [
+  {
+    value: "pull-up bar",
+    label: "Pull-up bar",
+    desc: "Buka program progresi pull-up.",
+  },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -18,6 +37,9 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [age, setAge] = useState(32);
   const [saved, setSaved] = useState(false);
+  const [preset, setPreset] = useState<TrainingPreset>("balanced");
+  const [equipment, setEquipment] = useState<string[]>([]);
+  const [trainingSaved, setTrainingSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [syncCode, setSyncCodeInput] = useState("");
   const [codeSaved, setCodeSaved] = useState(false);
@@ -48,8 +70,27 @@ export default function SettingsPage() {
     if (user) {
       setName(user.name);
       setAge(user.age);
+      setPreset(user.trainingPreset ?? "balanced");
+      setEquipment(user.ownedEquipment ?? []);
     }
   }, [user]);
+
+  function toggleEquipment(value: string) {
+    setEquipment((prev) =>
+      prev.includes(value)
+        ? prev.filter((v) => v !== value)
+        : [...prev, value]
+    );
+  }
+
+  async function onSaveTraining() {
+    if (!user) return;
+    const updated = { ...user, trainingPreset: preset, ownedEquipment: equipment };
+    await putUser(updated);
+    setUser(updated);
+    setTrainingSaved(true);
+    setTimeout(() => setTrainingSaved(false), 2000);
+  }
 
   async function onSaveProfile() {
     if (!user) return;
@@ -116,6 +157,80 @@ export default function SettingsPage() {
           </div>
           <Button onClick={onSaveProfile} disabled={!user}>
             {saved ? "Tersimpan" : "Simpan profil"}
+          </Button>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <CardTitle>Latihan</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Atur fokus program dan alat yang kamu punya. Sesi harian menyesuaikan
+            pilihan ini.
+          </p>
+
+          <div>
+            <Label>Preset fokus</Label>
+            <div className="mt-1 flex flex-col gap-2">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setPreset(p.value)}
+                  className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                    preset === p.value
+                      ? "border-primary bg-primary/10"
+                      : "border-border"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-foreground">
+                    {p.label}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {p.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label>Alat yang dimiliki</Label>
+            <div className="mt-1 flex flex-col gap-2">
+              {EQUIPMENT.map((eq) => {
+                const checked = equipment.includes(eq.value);
+                return (
+                  <button
+                    key={eq.value}
+                    type="button"
+                    onClick={() => toggleEquipment(eq.value)}
+                    className={`flex items-start gap-3 rounded-md border px-3 py-2 text-left transition-colors ${
+                      checked ? "border-primary bg-primary/10" : "border-border"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${
+                        checked
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border"
+                      }`}
+                    >
+                      {checked ? "✓" : ""}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-foreground">
+                        {eq.label}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {eq.desc}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button onClick={onSaveTraining} disabled={!user}>
+            {trainingSaved ? "Tersimpan" : "Simpan latihan"}
           </Button>
         </Card>
 
