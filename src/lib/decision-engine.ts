@@ -45,6 +45,8 @@ export interface EngineInputs {
   recentSessionTimestamps: number[];
   /** Recent workout logs, newest first — feeds capability. Defaults to []. */
   workoutLogs?: WorkoutLog[];
+  /** Equipment the user owns; unlocks geared moves. Defaults to []. */
+  ownedEquipment?: string[];
 }
 
 export interface GoalWeights {
@@ -284,6 +286,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const floorRank = Math.min(capability.floorRank, ceilingRank);
   const preferHardest = capability.floorRank >= 2;
   const weights = deriveGoalWeights(assessment);
+  const allowedEquipment = new Set(inputs.ownedEquipment ?? []);
 
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
@@ -297,9 +300,12 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     const max = intensity === "recovery" ? 2 : boosted ? 3 : 2;
     const picks =
       intensity === "recovery"
-        ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max)
+        ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max, {
+            allowedEquipment,
+          })
         : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max, {
             preferHardest,
+            allowedEquipment,
           });
     const fitted: Exercise[] = [];
     for (const ex of picks) {

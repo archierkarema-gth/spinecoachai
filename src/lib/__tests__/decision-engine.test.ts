@@ -309,9 +309,44 @@ describe("generateSession — personalization", () => {
   });
 });
 
+describe("generateSession — equipment allowlist", () => {
+  const readyActive = {
+    assessment: {
+      ...baseAssessment,
+      activityLevel: "active" as const,
+      availableMinutesPerDay: 90,
+    },
+    checkIn: checkIn({
+      painLevel: 1,
+      recovery: 5,
+      energyLevel: 5,
+      sleepQuality: 5,
+      availableMinutes: 90,
+    }),
+    workoutLogs: [log(), log(), log()],
+  };
+
+  it("hides pull-up moves when the user owns no equipment", () => {
+    const result = generateSession(inputs(readyActive));
+    const all = result.blocks.flatMap((b) => b.exercises);
+    expect(all.some((e) => e.equipment.includes("pull-up bar"))).toBe(false);
+  });
+
+  it("includes pull-up moves when the user owns a bar", () => {
+    const result = generateSession(
+      inputs({ ...readyActive, ownedEquipment: ["pull-up bar"] })
+    );
+    const all = result.blocks.flatMap((b) => b.exercises);
+    expect(all.some((e) => e.equipment.includes("pull-up bar"))).toBe(true);
+  });
+});
+
 describe("EXERCISE_SEED integrity", () => {
-  it("is entirely bodyweight", () => {
-    expect(EXERCISE_SEED.every((e) => e.equipment.length === 0)).toBe(true);
+  it("bodyweight moves have no equipment; geared moves list only known equipment", () => {
+    const known = new Set(["pull-up bar"]);
+    for (const ex of EXERCISE_SEED) {
+      expect(ex.equipment.every((item) => known.has(item))).toBe(true);
+    }
   });
 
   it("every entry validates against the schema", () => {
