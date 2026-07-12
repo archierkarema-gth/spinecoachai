@@ -13,7 +13,14 @@ import {
 // lib/db.ts) — each test uses its own ids rather than resetting the db.
 describe("db layer", () => {
   it("stores and retrieves a user", async () => {
-    const user = { id: "u1", name: "Archie", age: 32, createdAt: Date.now() };
+    const user = {
+      id: "u1",
+      name: "Archie",
+      age: 32,
+      createdAt: Date.now(),
+      trainingPreset: "balanced" as const,
+      ownedEquipment: [],
+    };
     await putUser(user);
     await expect(getUser("u1")).resolves.toEqual(user);
     await expect(getFirstUser()).resolves.toEqual(user);

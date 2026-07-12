@@ -54,8 +54,10 @@ export default function WorkoutPage() {
       recentSessionTimestamps: workoutLogs.map((l) => l.createdAt),
       // Feeds deriveCapability so completed sessions ratchet difficulty over time.
       workoutLogs,
+      preset: user?.trainingPreset ?? "balanced",
+      ownedEquipment: user?.ownedEquipment ?? [],
     });
-  }, [latestAssessment, latestCheckIn, exercises, workoutLogs]);
+  }, [latestAssessment, latestCheckIn, exercises, workoutLogs, user]);
 
   async function finishSession(result: {
     completed: CompletedExercise[];

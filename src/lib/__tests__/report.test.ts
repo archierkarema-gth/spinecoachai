@@ -6,7 +6,14 @@ import type { WorkoutLog, PainLog } from "@/lib/log-schemas";
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-07-10T12:00:00").getTime();
 
-const user: User = { id: "u1", name: "Archie", age: 32, createdAt: 0 };
+const user: User = {
+  id: "u1",
+  name: "Archie",
+  age: 32,
+  createdAt: 0,
+  trainingPreset: "balanced",
+  ownedEquipment: [],
+};
 
 const assessment: Assessment = {
   id: "a1",

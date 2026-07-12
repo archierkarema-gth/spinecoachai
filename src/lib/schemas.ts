@@ -31,11 +31,16 @@ export function hasRedFlag(flags: RedFlagSymptoms): boolean {
   return Object.values(flags).some(Boolean);
 }
 
+export const trainingPresetEnum = z.enum(["balanced", "muscle-priority"]);
+export type TrainingPreset = z.infer<typeof trainingPresetEnum>;
+
 export const userSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Nama wajib diisi"),
   age: z.number().int().min(13).max(100),
   createdAt: z.number(),
+  trainingPreset: trainingPresetEnum.default("balanced"),
+  ownedEquipment: z.array(z.string()).default([]),
 });
 export type User = z.infer<typeof userSchema>;
 

@@ -227,6 +227,45 @@ describe("pickForDomain", () => {
     const picks = pickForDomain(EXERCISE_SEED, "core", 2, 3, 5);
     expect(picks.every((e) => e.difficulty !== "beginner")).toBe(true);
   });
+
+  it("prefers the hardest in-window move when preferHardest is set", () => {
+    const easiestFirst = pickForDomain(EXERCISE_SEED, "strength", 1, 3, 1);
+    const hardestFirst = pickForDomain(EXERCISE_SEED, "strength", 1, 3, 1, {
+      preferHardest: true,
+    });
+    const rank = { beginner: 1, intermediate: 2, advanced: 3 } as const;
+    expect(rank[hardestFirst[0].difficulty]).toBeGreaterThanOrEqual(
+      rank[easiestFirst[0].difficulty]
+    );
+    expect(hardestFirst[0].difficulty).toBe("advanced");
+  });
+});
+
+describe("generateSession — advanced surfacing", () => {
+  it("leads the strength block with the hardest move for a capable, full-readiness user", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, activityLevel: "active" },
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+      })
+    );
+    const strength = result.blocks.find((b) => b.domain === "strength");
+    expect(strength).toBeDefined();
+    // Hardest-first: the first picked strength move must be advanced. Easiest-first
+    // (the pre-fix behavior) would lead with a beginner move, failing this.
+    expect(strength!.exercises[0].difficulty).toBe("advanced");
+  });
+
+  it("keeps a genuine beginner on easiest moves even at full readiness", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, activityLevel: "sedentary" },
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+      })
+    );
+    const all = result.blocks.flatMap((b) => b.exercises);
+    expect(all.every((e) => e.difficulty !== "advanced")).toBe(true);
+  });
 });
 
 describe("generateSession — personalization", () => {
@@ -270,9 +309,93 @@ describe("generateSession — personalization", () => {
   });
 });
 
+describe("generateSession — equipment allowlist", () => {
+  const readyActive = {
+    assessment: {
+      ...baseAssessment,
+      activityLevel: "active" as const,
+      availableMinutesPerDay: 90,
+    },
+    checkIn: checkIn({
+      painLevel: 1,
+      recovery: 5,
+      energyLevel: 5,
+      sleepQuality: 5,
+      availableMinutes: 90,
+    }),
+    workoutLogs: [log(), log(), log()],
+  };
+
+  it("hides pull-up moves when the user owns no equipment", () => {
+    const result = generateSession(inputs(readyActive));
+    const all = result.blocks.flatMap((b) => b.exercises);
+    expect(all.some((e) => e.equipment.includes("pull-up bar"))).toBe(false);
+  });
+
+  it("includes pull-up moves when the user owns a bar", () => {
+    const result = generateSession(
+      inputs({ ...readyActive, ownedEquipment: ["pull-up bar"] })
+    );
+    const all = result.blocks.flatMap((b) => b.exercises);
+    expect(all.some((e) => e.equipment.includes("pull-up bar"))).toBe(true);
+  });
+});
+
+describe("generateSession — muscle-priority preset", () => {
+  const longReady = {
+    assessment: {
+      ...baseAssessment,
+      activityLevel: "active" as const,
+      availableMinutesPerDay: 90,
+    },
+    checkIn: checkIn({
+      painLevel: 1,
+      recovery: 5,
+      energyLevel: 5,
+      sleepQuality: 5,
+      availableMinutes: 90,
+    }),
+    workoutLogs: [log(), log(), log()],
+  };
+
+  const MUSCLE = new Set(["strength", "conditioning"]);
+  const CORRECTIVE = new Set(["breathing", "mobility", "stability"]);
+
+  function timeByGroup(blocks: { domain: string; exercises: { durationSeconds: number }[] }[]) {
+    let muscle = 0;
+    let corrective = 0;
+    for (const b of blocks) {
+      const t = b.exercises.reduce((s, e) => s + e.durationSeconds, 0);
+      if (MUSCLE.has(b.domain)) muscle += t;
+      else if (CORRECTIVE.has(b.domain)) corrective += t;
+    }
+    return { muscle, corrective };
+  }
+
+  it("weights muscle time above corrective time under muscle-priority", () => {
+    const balanced = generateSession(inputs({ ...longReady, preset: "balanced" }));
+    const priority = generateSession(inputs({ ...longReady, preset: "muscle-priority" }));
+    const b = timeByGroup(balanced.blocks);
+    const p = timeByGroup(priority.blocks);
+    const balancedShare = b.muscle / (b.muscle + b.corrective);
+    const priorityShare = p.muscle / (p.muscle + p.corrective);
+    expect(priorityShare).toBeGreaterThan(balancedShare);
+    expect(priorityShare).toBeGreaterThan(0.55);
+  });
+
+  it("never drops corrective work to zero under muscle-priority", () => {
+    const priority = generateSession(inputs({ ...longReady, preset: "muscle-priority" }));
+    const p = timeByGroup(priority.blocks);
+    expect(p.corrective).toBeGreaterThan(0);
+  });
+});
+
 describe("EXERCISE_SEED integrity", () => {
-  it("is entirely bodyweight", () => {
-    expect(EXERCISE_SEED.every((e) => e.equipment.length === 0)).toBe(true);
+  it("bodyweight moves have no equipment; geared moves list only known equipment", () => {
+    const known = new Set(["pull-up bar"]);
+    for (const ex of EXERCISE_SEED) {
+      expect(ex.equipment.every((item) => known.has(item))).toBe(true);
+    }
   });
 
   it("every entry validates against the schema", () => {

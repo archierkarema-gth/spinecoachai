@@ -45,6 +45,10 @@ export interface EngineInputs {
   recentSessionTimestamps: number[];
   /** Recent workout logs, newest first — feeds capability. Defaults to []. */
   workoutLogs?: WorkoutLog[];
+  /** Equipment the user owns; unlocks geared moves. Defaults to []. */
+  ownedEquipment?: string[];
+  /** Owner-only session mix preset. Defaults to "balanced". */
+  preset?: "balanced" | "muscle-priority";
 }
 
 export interface GoalWeights {
@@ -147,6 +151,34 @@ const RECOVERY_SEQUENCE: { domain: ExerciseDomain; label: string }[] = [
   { domain: "recovery", label: "Pemulihan" },
 ];
 
+const MUSCLE_DOMAINS = new Set<ExerciseDomain>(["strength", "conditioning"]);
+const CORRECTIVE_DOMAINS = new Set<ExerciseDomain>([
+  "breathing",
+  "mobility",
+  "stability",
+]);
+
+/**
+ * Per-domain slot count. Under "muscle-priority" the muscle domains get more
+ * slots and corrective domains are trimmed to a single slot each — pushing the
+ * session-time mix toward ~70/30 while never zeroing corrective work. The time
+ * budget still caps total volume.
+ */
+function slotMaxFor(
+  domain: ExerciseDomain,
+  intensity: SessionIntensity,
+  preset: "balanced" | "muscle-priority",
+  boosted: boolean
+): number {
+  if (intensity === "recovery") return 2;
+  if (preset === "muscle-priority") {
+    if (MUSCLE_DOMAINS.has(domain)) return 4;
+    if (CORRECTIVE_DOMAINS.has(domain)) return 1;
+    return 1; // core/balance/recovery: keep light so muscle dominates
+  }
+  return boosted ? 3 : 2;
+}
+
 /**
  * Decide the day's intensity from check-in signals. Safety and recovery come
  * before any performance goal (docs/05 decision order 1–2).
@@ -172,17 +204,28 @@ export function decideIntensity(checkIn: CheckIn): SessionIntensity {
  * generic left/right balancing. Never targets a specific curve (docs/04).
  * Exported for unit testing.
  */
+export interface PickOptions {
+  /** Sort the in-window pool hardest-first (for capable users). */
+  preferHardest?: boolean;
+  /** Equipment the user owns; bodyweight (empty) is always allowed. */
+  allowedEquipment?: Set<string>;
+}
+
 export function pickForDomain(
   exercises: Exercise[],
   domain: ExerciseDomain,
   floorRank: number,
   ceilingRank: number,
-  max: number
+  max: number,
+  opts: PickOptions = {}
 ): Exercise[] {
-  const bodyweight = exercises.filter(
-    (ex) => ex.domain === domain && ex.equipment.length === 0
+  const allowed = opts.allowedEquipment ?? new Set<string>();
+  const eligible = exercises.filter(
+    (ex) =>
+      ex.domain === domain &&
+      ex.equipment.every((item) => allowed.has(item))
   );
-  const inWindow = bodyweight.filter((ex) => {
+  const inWindow = eligible.filter((ex) => {
     const r = DIFFICULTY_RANK[ex.difficulty];
     return r >= floorRank && r <= ceilingRank;
   });
@@ -191,14 +234,15 @@ export function pickForDomain(
   const pool =
     inWindow.length > 0
       ? inWindow
-      : bodyweight.filter((ex) => DIFFICULTY_RANK[ex.difficulty] <= ceilingRank);
+      : eligible.filter((ex) => DIFFICULTY_RANK[ex.difficulty] <= ceilingRank);
 
-  const byEasiest = [...pool].sort(
-    (a, b) => DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty]
+  const dir = opts.preferHardest ? -1 : 1;
+  const byPreference = [...pool].sort(
+    (a, b) => dir * (DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty])
   );
 
-  const lefts = byEasiest.filter((e) => e.sideEmphasis === "left");
-  const rights = byEasiest.filter((e) => e.sideEmphasis === "right");
+  const lefts = byPreference.filter((e) => e.sideEmphasis === "left");
+  const rights = byPreference.filter((e) => e.sideEmphasis === "right");
   const result: Exercise[] = [];
 
   // Generic balance: if we have both sides and room for a pair, take one each.
@@ -208,7 +252,7 @@ export function pickForDomain(
   if (lefts.length > 0 && rights.length > 0 && max >= 2) {
     result.push(lefts[0], rights[0]);
   }
-  for (const ex of byEasiest) {
+  for (const ex of byPreference) {
     if (result.length >= max) break;
     if (result.includes(ex)) continue;
     result.push(ex);
@@ -270,7 +314,10 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const ceilingRank = DIFFICULTY_CEILING[intensity];
   const capability = deriveCapability(assessment, inputs.workoutLogs ?? []);
   const floorRank = Math.min(capability.floorRank, ceilingRank);
+  const preferHardest = capability.floorRank >= 2;
   const weights = deriveGoalWeights(assessment);
+  const allowedEquipment = new Set(inputs.ownedEquipment ?? []);
+  const preset = inputs.preset ?? "balanced";
 
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
@@ -281,11 +328,27 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
       (step.domain === "strength" && weights.strength > 0) ||
       ((step.domain === "stability" || step.domain === "breathing") &&
         weights.posture > 0);
-    const max = intensity === "recovery" ? 2 : boosted ? 3 : 2;
+    const max = slotMaxFor(step.domain, intensity, preset, boosted);
+    // Under muscle-priority, widen the floor for muscle domains to beginner so
+    // the extra slots actually fill from the full 1–3 window; preferHardest
+    // still leads with the hardest in-window move. Ceiling (safety) untouched.
+    const muscleWidened =
+      preset === "muscle-priority" && MUSCLE_DOMAINS.has(step.domain);
+    const effectiveFloor = muscleWidened ? 1 : floorRank;
+    // Hardest-first surfacing is for muscle work; under muscle-priority don't
+    // bias corrective domains toward their hardest variant.
+    const effectivePreferHardest =
+      preferHardest &&
+      !(preset === "muscle-priority" && CORRECTIVE_DOMAINS.has(step.domain));
     const picks =
       intensity === "recovery"
-        ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max)
-        : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max);
+        ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max, {
+            allowedEquipment,
+          })
+        : pickForDomain(exercises, step.domain, effectiveFloor, ceilingRank, max, {
+            preferHardest: effectivePreferHardest,
+            allowedEquipment,
+          });
     const fitted: Exercise[] = [];
     for (const ex of picks) {
       if (usedSeconds + ex.durationSeconds > budgetSeconds && blocks.length > 0) {
@@ -303,6 +366,16 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   if (intensity === "full" && !trainedRecently) {
     reasoning.push(
       "Kalau gerakan terasa mudah dan tanpa nyeri, naik ke progresinya."
+    );
+  }
+
+  if (blocks.flatMap((b) => b.exercises).some((e) => e.difficulty === "advanced")) {
+    reasoning.push("Kesiapan & progres bagus — termasuk variasi tingkat lanjut.");
+  }
+
+  if (preset === "muscle-priority") {
+    reasoning.push(
+      "Preset kamu: fokus utama pembentukan otot, tetap sisipkan korektif skoliosis."
     );
   }
 
