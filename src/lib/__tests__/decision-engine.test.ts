@@ -538,3 +538,62 @@ describe("progressedDuration", () => {
     expect(progressedDuration(60, 20)).toBe(105);
   });
 });
+
+describe("generateSession — M9 progression swap", () => {
+  // A leading incomplete/unrelated log breaks deriveCapability's 3-session
+  // clean streak (which would otherwise bump the difficulty floor and push
+  // ex-dead-bug, a beginner move, out of the pick window before the swap
+  // gate is ever reached) while countCleanStreak safely skips it — the move
+  // is absent from that log, so the dead-bug streak below still counts 6.
+  const sixClean = [
+    wlog([{ exerciseId: "ex-unrelated-warmup", completed: false }]),
+    ...Array.from({ length: 6 }, () =>
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }])
+    ),
+  ];
+  const fullReady = checkIn({
+    painLevel: 1,
+    recovery: 5,
+    energyLevel: 5,
+    sleepQuality: 5,
+  });
+
+  it("swaps a capped move to its progression when intensity is full", () => {
+    const s = generateSession(inputs({ checkIn: fullReady, workoutLogs: sixClean }));
+    const ids = s.blocks.flatMap((b) => b.exercises).map((e) => e.id);
+    expect(ids).toContain("ex-bird-dog");
+    expect(ids).not.toContain("ex-dead-bug");
+  });
+
+  it("adds a swap reasoning line", () => {
+    const s = generateSession(inputs({ checkIn: fullReady, workoutLogs: sixClean }));
+    expect(s.reasoning.some((r) => r.includes("naik ke variasi lebih menantang"))).toBe(
+      true
+    );
+  });
+
+  it("does NOT swap when intensity is not full", () => {
+    // painLevel 3 → moderate, not full
+    const s = generateSession(
+      inputs({ checkIn: checkIn({ painLevel: 3 }), workoutLogs: sixClean })
+    );
+    const ids = s.blocks.flatMap((b) => b.exercises).map((e) => e.id);
+    expect(ids).toContain("ex-dead-bug");
+    expect(ids).not.toContain("ex-bird-dog");
+  });
+
+  it("does NOT swap a move whose progressionId is null", () => {
+    // ex-90-90-breathing is a terminal move (progressionId: null); even at cap
+    // + full it must stay put (only its duration may bump).
+    const sixClean9090 = Array.from({ length: 6 }, () =>
+      wlog([{ exerciseId: "ex-90-90-breathing", completed: true }])
+    );
+    const s = generateSession(inputs({ checkIn: fullReady, workoutLogs: sixClean9090 }));
+    const ids = s.blocks.flatMap((b) => b.exercises).map((e) => e.id);
+    expect(ids).toContain("ex-90-90-breathing");
+    expect(s.reasoning.some((r) => r.includes("naik ke variasi lebih menantang"))).toBe(
+      false
+    );
+  });
+});
+

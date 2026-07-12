@@ -362,6 +362,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
   let bumped = false;
+  const swaps: { from: string; to: string }[] = [];
   for (const step of sequence) {
     // mobility and pain weights are currently informational only (per spec §4);
     // only posture and strength influence per-domain slot boosting below.
@@ -396,6 +397,17 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
         ? picks
         : picks.map((ex) => {
             const streak = countCleanStreak(ex.id, inputs.workoutLogs ?? []);
+            // Ceiling + full readiness → offer the progression move.
+            if (streak >= PROGRESS_STREAK_AT_CAP && intensity === "full" && ex.progressionId) {
+              const next = exercises.find((e) => e.id === ex.progressionId);
+              const available =
+                next !== undefined &&
+                next.equipment.every((item) => allowedEquipment.has(item));
+              if (available) {
+                swaps.push({ from: ex.name, to: next.name });
+                return next; // its own base duration; its streak starts fresh
+              }
+            }
             const dur = progressedDuration(ex.durationSeconds, streak);
             if (dur !== ex.durationSeconds) bumped = true;
             return dur === ex.durationSeconds ? ex : { ...ex, durationSeconds: dur };
@@ -429,6 +441,10 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     reasoning.push(
       "Sebagian gerakan naik durasi — kamu konsisten menyelesaikannya."
     );
+  }
+
+  for (const s of swaps) {
+    reasoning.push(`${s.from} → ${s.to}: sudah mantap, naik ke variasi lebih menantang.`);
   }
 
   if (preset === "muscle-priority") {
