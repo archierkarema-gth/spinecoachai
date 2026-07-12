@@ -227,6 +227,43 @@ describe("pickForDomain", () => {
     const picks = pickForDomain(EXERCISE_SEED, "core", 2, 3, 5);
     expect(picks.every((e) => e.difficulty !== "beginner")).toBe(true);
   });
+
+  it("prefers the hardest in-window move when preferHardest is set", () => {
+    const easiestFirst = pickForDomain(EXERCISE_SEED, "strength", 1, 3, 1);
+    const hardestFirst = pickForDomain(EXERCISE_SEED, "strength", 1, 3, 1, {
+      preferHardest: true,
+    });
+    const rank = { beginner: 1, intermediate: 2, advanced: 3 } as const;
+    expect(rank[hardestFirst[0].difficulty]).toBeGreaterThanOrEqual(
+      rank[easiestFirst[0].difficulty]
+    );
+    expect(hardestFirst[0].difficulty).toBe("advanced");
+  });
+});
+
+describe("generateSession — advanced surfacing", () => {
+  it("programs an advanced move for a capable, full-readiness user", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, activityLevel: "active" },
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+        workoutLogs: [log(), log(), log()],
+      })
+    );
+    const all = result.blocks.flatMap((b) => b.exercises);
+    expect(all.some((e) => e.difficulty === "advanced")).toBe(true);
+  });
+
+  it("keeps a genuine beginner on easiest moves even at full readiness", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, activityLevel: "sedentary" },
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+      })
+    );
+    const all = result.blocks.flatMap((b) => b.exercises);
+    expect(all.every((e) => e.difficulty !== "advanced")).toBe(true);
+  });
 });
 
 describe("generateSession — personalization", () => {

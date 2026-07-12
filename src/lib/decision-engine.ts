@@ -172,17 +172,28 @@ export function decideIntensity(checkIn: CheckIn): SessionIntensity {
  * generic left/right balancing. Never targets a specific curve (docs/04).
  * Exported for unit testing.
  */
+export interface PickOptions {
+  /** Sort the in-window pool hardest-first (for capable users). */
+  preferHardest?: boolean;
+  /** Equipment the user owns; bodyweight (empty) is always allowed. */
+  allowedEquipment?: Set<string>;
+}
+
 export function pickForDomain(
   exercises: Exercise[],
   domain: ExerciseDomain,
   floorRank: number,
   ceilingRank: number,
-  max: number
+  max: number,
+  opts: PickOptions = {}
 ): Exercise[] {
-  const bodyweight = exercises.filter(
-    (ex) => ex.domain === domain && ex.equipment.length === 0
+  const allowed = opts.allowedEquipment ?? new Set<string>();
+  const eligible = exercises.filter(
+    (ex) =>
+      ex.domain === domain &&
+      ex.equipment.every((item) => allowed.has(item))
   );
-  const inWindow = bodyweight.filter((ex) => {
+  const inWindow = eligible.filter((ex) => {
     const r = DIFFICULTY_RANK[ex.difficulty];
     return r >= floorRank && r <= ceilingRank;
   });
@@ -191,14 +202,15 @@ export function pickForDomain(
   const pool =
     inWindow.length > 0
       ? inWindow
-      : bodyweight.filter((ex) => DIFFICULTY_RANK[ex.difficulty] <= ceilingRank);
+      : eligible.filter((ex) => DIFFICULTY_RANK[ex.difficulty] <= ceilingRank);
 
-  const byEasiest = [...pool].sort(
-    (a, b) => DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty]
+  const dir = opts.preferHardest ? -1 : 1;
+  const byPreference = [...pool].sort(
+    (a, b) => dir * (DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty])
   );
 
-  const lefts = byEasiest.filter((e) => e.sideEmphasis === "left");
-  const rights = byEasiest.filter((e) => e.sideEmphasis === "right");
+  const lefts = byPreference.filter((e) => e.sideEmphasis === "left");
+  const rights = byPreference.filter((e) => e.sideEmphasis === "right");
   const result: Exercise[] = [];
 
   // Generic balance: if we have both sides and room for a pair, take one each.
@@ -208,7 +220,7 @@ export function pickForDomain(
   if (lefts.length > 0 && rights.length > 0 && max >= 2) {
     result.push(lefts[0], rights[0]);
   }
-  for (const ex of byEasiest) {
+  for (const ex of byPreference) {
     if (result.length >= max) break;
     if (result.includes(ex)) continue;
     result.push(ex);
@@ -270,6 +282,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const ceilingRank = DIFFICULTY_CEILING[intensity];
   const capability = deriveCapability(assessment, inputs.workoutLogs ?? []);
   const floorRank = Math.min(capability.floorRank, ceilingRank);
+  const preferHardest = capability.floorRank >= 2;
   const weights = deriveGoalWeights(assessment);
 
   const blocks: SessionBlock[] = [];
@@ -285,7 +298,9 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     const picks =
       intensity === "recovery"
         ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max)
-        : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max);
+        : pickForDomain(exercises, step.domain, floorRank, ceilingRank, max, {
+            preferHardest,
+          });
     const fitted: Exercise[] = [];
     for (const ex of picks) {
       if (usedSeconds + ex.durationSeconds > budgetSeconds && blocks.length > 0) {
@@ -304,6 +319,10 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     reasoning.push(
       "Kalau gerakan terasa mudah dan tanpa nyeri, naik ke progresinya."
     );
+  }
+
+  if (blocks.flatMap((b) => b.exercises).some((e) => e.difficulty === "advanced")) {
+    reasoning.push("Kesiapan & progres bagus — termasuk variasi tingkat lanjut.");
   }
 
   const focus =
