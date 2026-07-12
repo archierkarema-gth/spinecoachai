@@ -42,3 +42,6 @@ next-env.d.ts
 
 # superpowers SDD scratch (progress ledger, task briefs)
 /.superpowers/
+
+.vercel
+.env*

@@ -187,8 +187,9 @@ export default function SettingsPage() {
         </Card>
 
         <p className="px-1 text-xs text-muted-foreground">
-          SpineCoach AI menyimpan data hanya di perangkat ini (IndexedDB).
-          Belum ada sinkronisasi cloud.
+          Data tersimpan di perangkat ini (IndexedDB). Dengan kode sync,
+          data juga tersalin ke cloud dan bisa diakses dari perangkat lain
+          yang memakai kode sama.
         </p>
       </div>
     </div>
