@@ -5,6 +5,7 @@ import {
   deriveGoalWeights,
   deriveCapability,
   pickForDomain,
+  countCleanStreak,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
@@ -387,6 +388,67 @@ describe("generateSession — muscle-priority preset", () => {
     const priority = generateSession(inputs({ ...longReady, preset: "muscle-priority" }));
     const p = timeByGroup(priority.blocks);
     expect(p.corrective).toBeGreaterThan(0);
+  });
+});
+
+function wlog(
+  exercises: { exerciseId: string; completed: boolean }[],
+  postSessionPain = 0
+): WorkoutLog {
+  return {
+    id: `w-${Math.random()}`,
+    userId: "u1",
+    createdAt: 0,
+    movementFocus: "x",
+    intensity: "full",
+    estimatedMinutes: 10,
+    exercises: exercises.map((e) => ({
+      exerciseId: e.exerciseId,
+      name: e.exerciseId,
+      domain: "core" as const,
+      completed: e.completed,
+    })),
+    postSessionPain,
+  };
+}
+
+describe("countCleanStreak", () => {
+  it("counts a clean run, newest-first", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(2);
+  });
+
+  it("skips sessions where the move is absent", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+      wlog([{ exerciseId: "ex-cat-cow", completed: true }]), // absent → skipped
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(2);
+  });
+
+  it("breaks on a present-but-incomplete session", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+      wlog([{ exerciseId: "ex-dead-bug", completed: false }]),
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(1);
+  });
+
+  it("breaks when post-session pain exceeds 3", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }], 5),
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(0);
+  });
+
+  it("returns 0 for a never-logged move", () => {
+    expect(countCleanStreak("ex-dead-bug", [])).toBe(0);
   });
 });
 

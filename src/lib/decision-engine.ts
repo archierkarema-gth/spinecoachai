@@ -122,6 +122,28 @@ export function deriveCapability(
   return { floorRank: clampRank(floor) };
 }
 
+/**
+ * Count the leading run of clean sessions for one move (newest-first).
+ * A session where the move is absent is skipped — not counted, not breaking —
+ * because low-intensity or short days legitimately drop moves. A session where
+ * the move is present but not clean (incomplete, or postSessionPain > 3) ends
+ * the run. Source of per-move progression state — no new store (M9).
+ */
+export function countCleanStreak(
+  exerciseId: string,
+  logs: WorkoutLog[]
+): number {
+  let streak = 0;
+  for (const log of logs) {
+    const entry = log.exercises.find((e) => e.exerciseId === exerciseId);
+    if (!entry) continue; // move absent → skip
+    const clean = entry.completed && (log.postSessionPain ?? 0) <= 3;
+    if (!clean) break;
+    streak += 1;
+  }
+  return streak;
+}
+
 // Difficulty ceiling for each intensity — the engine never picks a movement
 // harder than the day allows.
 const DIFFICULTY_CEILING: Record<SessionIntensity, number> = {
