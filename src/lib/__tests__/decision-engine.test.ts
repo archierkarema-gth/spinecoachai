@@ -498,8 +498,12 @@ describe("countCleanStreak", () => {
 });
 
 describe("EXERCISE_SEED integrity", () => {
+  it("has grown to 48 curated exercises", () => {
+    expect(EXERCISE_SEED.length).toBe(48);
+  });
+
   it("bodyweight moves have no equipment; geared moves list only known equipment", () => {
-    const known = new Set(["pull-up bar"]);
+    const known = new Set(["pull-up bar", "dip bars"]);
     for (const ex of EXERCISE_SEED) {
       expect(ex.equipment.every((item) => known.has(item))).toBe(true);
     }
@@ -767,6 +771,34 @@ describe("generateSession — M10 recovery load", () => {
     );
     expect(s.intensity).toBe("full");
     expect(s.reasoning.some((r) => r.includes("Beban 2 hari terakhir"))).toBe(false);
+  });
+});
+
+describe("M11 dip equipment gating", () => {
+  const R = { beginner: 0, intermediate: 1, advanced: 2 };
+
+  it("excludes dip moves from strength when dip bars not owned", () => {
+    const picks = pickForDomain(
+      EXERCISE_SEED,
+      "strength",
+      R.beginner,
+      R.advanced,
+      20,
+      { allowedEquipment: new Set<string>() }
+    );
+    expect(picks.some((e) => e.id.startsWith("ex-dip") || e.id === "ex-negative-dip" || e.id === "ex-full-dip")).toBe(false);
+  });
+
+  it("includes dip moves when dip bars owned", () => {
+    const picks = pickForDomain(
+      EXERCISE_SEED,
+      "strength",
+      R.beginner,
+      R.advanced,
+      20,
+      { allowedEquipment: new Set(["dip bars"]) }
+    );
+    expect(picks.some((e) => e.equipment.includes("dip bars"))).toBe(true);
   });
 });
 
