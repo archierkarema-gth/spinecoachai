@@ -379,12 +379,17 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     inputs.workoutLogs ?? [],
     checkIn.createdAt
   );
-  if (intensity !== baseIntensity) {
+  // Load suppression only lowers a full/moderate base, and decideIntensity
+  // already returns "light" for recovery <= 2 — so in the live pipeline the
+  // gate (recovery <= 3) effectively fires at recovery === 3.
+  const suppressed = intensity !== baseIntensity;
+  if (suppressed) {
+    // The load line explains the lowered tier; skip the readiness descriptor
+    // below so we don't also claim readiness was low when it wasn't.
     reasoning.push(
       "Beban 2 hari terakhir cukup berat & pemulihan pas-pasan — turunkan satu tingkat hari ini."
     );
-  }
-  if (intensity === "recovery") {
+  } else if (intensity === "recovery") {
     reasoning.push(
       `Nyeri ${checkIn.painLevel}/10 — hari ini fokus pemulihan, bukan beban.`
     );
