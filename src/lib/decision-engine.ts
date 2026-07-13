@@ -372,7 +372,18 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   }
 
   // 2. Recovery / readiness.
-  const intensity = decideIntensity(checkIn);
+  const baseIntensity = decideIntensity(checkIn);
+  const intensity = applyLoadSuppression(
+    baseIntensity,
+    checkIn,
+    inputs.workoutLogs ?? [],
+    checkIn.createdAt
+  );
+  if (intensity !== baseIntensity) {
+    reasoning.push(
+      "Beban 2 hari terakhir cukup berat & pemulihan pas-pasan — turunkan satu tingkat hari ini."
+    );
+  }
   if (intensity === "recovery") {
     reasoning.push(
       `Nyeri ${checkIn.painLevel}/10 — hari ini fokus pemulihan, bukan beban.`

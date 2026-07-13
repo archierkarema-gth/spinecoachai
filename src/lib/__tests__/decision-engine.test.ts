@@ -731,3 +731,42 @@ describe("applyLoadSuppression", () => {
   });
 });
 
+describe("generateSession — M10 recovery load", () => {
+  const H = 60 * 60 * 1000;
+  const nowTs = 1_000_000; // checkIn().createdAt default
+  function fullLog(ageH: number): WorkoutLog {
+    return {
+      id: `fl-${ageH}`,
+      userId: "u1",
+      createdAt: nowTs - ageH * H,
+      movementFocus: "x",
+      intensity: "full",
+      estimatedMinutes: 30,
+      exercises: [],
+    };
+  }
+
+  it("eases intensity one tier and notes it when 48h load is heavy and recovery marginal", () => {
+    // base is "moderate" + heavy load + recovery≤3 → drop to "light"
+    const s = generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 3, energyLevel: 3, sleepQuality: 4 }),
+        workoutLogs: [fullLog(2), fullLog(20)], // load 60 >= 45
+      })
+    );
+    expect(s.intensity).toBe("light");
+    expect(s.reasoning.some((r) => r.includes("Beban 2 hari terakhir"))).toBe(true);
+  });
+
+  it("does not ease or note when load is light", () => {
+    const s = generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 4, energyLevel: 4, sleepQuality: 4 }),
+        workoutLogs: [fullLog(2)], // load 30 < 45
+      })
+    );
+    expect(s.intensity).toBe("full");
+    expect(s.reasoning.some((r) => r.includes("Beban 2 hari terakhir"))).toBe(false);
+  });
+});
+
