@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { equipmentLabel, equipmentBadges } from "@/lib/equipment-label";
 
 describe("equipmentLabel", () => {
-  it("title-cases a multi-word equipment string", () => {
+  it("sentence-cases a multi-word equipment string (first letter only)", () => {
     expect(equipmentLabel("pull-up bar")).toBe("Pull-up bar");
     expect(equipmentLabel("dip bars")).toBe("Dip bars");
   });
