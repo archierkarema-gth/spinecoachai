@@ -597,3 +597,47 @@ describe("generateSession — M9 progression swap", () => {
   });
 });
 
+describe("generateSession — M9 swap dedup", () => {
+  // A minimal exercise pool of just ex-dead-bug (beginner, progressionId
+  // ex-bird-dog) and ex-bird-dog (intermediate) themselves. Core's slot max
+  // is 2 at full/balanced, so pickForDomain naturally surfaces BOTH moves for
+  // this window — meaning ex-bird-dog is already among the domain's picks
+  // before the swap pass ever runs. If dead-bug's streak then triggers a swap
+  // to its own progression (bird-dog), the block would contain bird-dog
+  // twice unless the engine detects the target is already picked and skips
+  // the swap.
+  const deadBugAndBirdDog = EXERCISE_SEED.filter((e) =>
+    ["ex-dead-bug", "ex-bird-dog"].includes(e.id)
+  );
+
+  const sixCleanDeadBug = [
+    wlog([{ exerciseId: "ex-unrelated-warmup", completed: false }]),
+    ...Array.from({ length: 6 }, () =>
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }])
+    ),
+  ];
+
+  const fullReady = checkIn({
+    painLevel: 1,
+    recovery: 5,
+    energyLevel: 5,
+    sleepQuality: 5,
+  });
+
+  it("never duplicates an exercise id within a block when the swap target is already picked", () => {
+    const s = generateSession(
+      inputs({
+        checkIn: fullReady,
+        exercises: deadBugAndBirdDog,
+        workoutLogs: sixCleanDeadBug,
+      })
+    );
+    for (const block of s.blocks) {
+      const ids = block.exercises.map((e) => e.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+    const allIds = s.blocks.flatMap((b) => b.exercises.map((e) => e.id));
+    expect(allIds.filter((id) => id === "ex-bird-dog").length).toBeLessThanOrEqual(1);
+  });
+});
+

@@ -392,26 +392,35 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
             allowedEquipment,
           });
     // M9 overload: lengthen holds a move has earned (recovery ignores duration).
-    const transformed: Exercise[] =
-      intensity === "recovery"
-        ? picks
-        : picks.map((ex) => {
-            const streak = countCleanStreak(ex.id, inputs.workoutLogs ?? []);
-            // Ceiling + full readiness → offer the progression move.
-            if (streak >= PROGRESS_STREAK_AT_CAP && intensity === "full" && ex.progressionId) {
-              const next = exercises.find((e) => e.id === ex.progressionId);
-              const available =
-                next !== undefined &&
-                next.equipment.every((item) => allowedEquipment.has(item));
-              if (available) {
-                swaps.push({ from: ex.name, to: next.name });
-                return next; // its own base duration; its streak starts fresh
-              }
-            }
-            const dur = progressedDuration(ex.durationSeconds, streak);
-            if (dur !== ex.durationSeconds) bumped = true;
-            return dur === ex.durationSeconds ? ex : { ...ex, durationSeconds: dur };
-          });
+    let transformed: Exercise[];
+    if (intensity === "recovery") {
+      transformed = picks;
+    } else {
+      // Track ids already committed for this domain so a swap can't emit a
+      // progression move that is already among the picks (or an earlier swap
+      // target) — that would duplicate the exercise and miscount the budget.
+      const committed = new Set(picks.map((ex) => ex.id));
+      transformed = picks.map((ex) => {
+        const streak = countCleanStreak(ex.id, inputs.workoutLogs ?? []);
+        // Ceiling + full readiness → offer the progression move.
+        if (streak >= PROGRESS_STREAK_AT_CAP && intensity === "full" && ex.progressionId) {
+          const next = exercises.find((e) => e.id === ex.progressionId);
+          const available =
+            next !== undefined &&
+            !committed.has(next.id) &&
+            next.equipment.every((item) => allowedEquipment.has(item));
+          if (available) {
+            committed.delete(ex.id);
+            committed.add(next.id);
+            swaps.push({ from: ex.name, to: next.name });
+            return next; // its own base duration; its streak starts fresh
+          }
+        }
+        const dur = progressedDuration(ex.durationSeconds, streak);
+        if (dur !== ex.durationSeconds) bumped = true;
+        return dur === ex.durationSeconds ? ex : { ...ex, durationSeconds: dur };
+      });
+    }
 
     const fitted: Exercise[] = [];
     for (const ex of transformed) {
