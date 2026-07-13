@@ -5,6 +5,8 @@ import {
   deriveGoalWeights,
   deriveCapability,
   pickForDomain,
+  countCleanStreak,
+  progressedDuration,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
@@ -390,6 +392,109 @@ describe("generateSession — muscle-priority preset", () => {
   });
 });
 
+let wlogSeq = 0;
+function wlog(
+  exercises: { exerciseId: string; completed: boolean }[],
+  postSessionPain = 0
+): WorkoutLog {
+  return {
+    id: `w-${wlogSeq++}`,
+    userId: "u1",
+    createdAt: 0,
+    movementFocus: "x",
+    intensity: "full",
+    estimatedMinutes: 10,
+    exercises: exercises.map((e) => ({
+      exerciseId: e.exerciseId,
+      name: e.exerciseId,
+      domain: "core" as const,
+      completed: e.completed,
+    })),
+    postSessionPain,
+  };
+}
+
+describe("generateSession — M9 duration overload", () => {
+  const twoCleanDeadBug = [
+    wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+  ];
+
+  it("bumps a move's duration after 2 clean sessions", () => {
+    const s = generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+        workoutLogs: twoCleanDeadBug,
+      })
+    );
+    const dead = s.blocks
+      .flatMap((b) => b.exercises)
+      .find((e) => e.id === "ex-dead-bug");
+    expect(dead?.durationSeconds).toBe(75); // seed base 60 + 15
+  });
+
+  it("adds a reasoning line when a move is bumped", () => {
+    const s = generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+        workoutLogs: twoCleanDeadBug,
+      })
+    );
+    expect(s.reasoning.some((r) => r.includes("naik durasi"))).toBe(true);
+  });
+
+  it("does not mutate the seed exercise", () => {
+    generateSession(
+      inputs({
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+        workoutLogs: twoCleanDeadBug,
+      })
+    );
+    const seed = EXERCISE_SEED.find((e) => e.id === "ex-dead-bug");
+    expect(seed?.durationSeconds).toBe(60);
+  });
+});
+
+describe("countCleanStreak", () => {
+  it("counts a clean run, newest-first", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(2);
+  });
+
+  it("skips sessions where the move is absent", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+      wlog([{ exerciseId: "ex-cat-cow", completed: true }]), // absent → skipped
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(2);
+  });
+
+  it("breaks on a present-but-incomplete session", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+      wlog([{ exerciseId: "ex-dead-bug", completed: false }]),
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(1);
+  });
+
+  it("breaks when post-session pain exceeds 3", () => {
+    const logs = [
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }], 5),
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }]),
+    ];
+    expect(countCleanStreak("ex-dead-bug", logs)).toBe(0);
+  });
+
+  it("returns 0 for a never-logged move", () => {
+    expect(countCleanStreak("ex-dead-bug", [])).toBe(0);
+  });
+});
+
 describe("EXERCISE_SEED integrity", () => {
   it("bodyweight moves have no equipment; geared moves list only known equipment", () => {
     const known = new Set(["pull-up bar"]);
@@ -417,3 +522,123 @@ describe("EXERCISE_SEED integrity", () => {
     expect(EXERCISE_SEED.filter((e) => e.domain === "strength").length).toBeGreaterThanOrEqual(5);
   });
 });
+
+describe("progressedDuration", () => {
+  it("holds at base below 2 clean sessions", () => {
+    expect(progressedDuration(60, 0)).toBe(60);
+    expect(progressedDuration(60, 1)).toBe(60);
+  });
+
+  it("adds 15s per 2 clean sessions", () => {
+    expect(progressedDuration(60, 2)).toBe(75);
+    expect(progressedDuration(60, 4)).toBe(90);
+  });
+
+  it("caps at +45s", () => {
+    expect(progressedDuration(60, 6)).toBe(105);
+    expect(progressedDuration(60, 20)).toBe(105);
+  });
+});
+
+describe("generateSession — M9 progression swap", () => {
+  // A leading incomplete/unrelated log breaks deriveCapability's 3-session
+  // clean streak (which would otherwise bump the difficulty floor and push
+  // ex-dead-bug, a beginner move, out of the pick window before the swap
+  // gate is ever reached) while countCleanStreak safely skips it — the move
+  // is absent from that log, so the dead-bug streak below still counts 6.
+  const sixClean = [
+    wlog([{ exerciseId: "ex-unrelated-warmup", completed: false }]),
+    ...Array.from({ length: 6 }, () =>
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }])
+    ),
+  ];
+  const fullReady = checkIn({
+    painLevel: 1,
+    recovery: 5,
+    energyLevel: 5,
+    sleepQuality: 5,
+  });
+
+  it("swaps a capped move to its progression when intensity is full", () => {
+    const s = generateSession(inputs({ checkIn: fullReady, workoutLogs: sixClean }));
+    const ids = s.blocks.flatMap((b) => b.exercises).map((e) => e.id);
+    expect(ids).toContain("ex-bird-dog");
+    expect(ids).not.toContain("ex-dead-bug");
+  });
+
+  it("adds a swap reasoning line", () => {
+    const s = generateSession(inputs({ checkIn: fullReady, workoutLogs: sixClean }));
+    expect(s.reasoning.some((r) => r.includes("naik ke variasi lebih menantang"))).toBe(
+      true
+    );
+  });
+
+  it("does NOT swap when intensity is not full", () => {
+    // painLevel 3 → moderate, not full
+    const s = generateSession(
+      inputs({ checkIn: checkIn({ painLevel: 3 }), workoutLogs: sixClean })
+    );
+    const ids = s.blocks.flatMap((b) => b.exercises).map((e) => e.id);
+    expect(ids).toContain("ex-dead-bug");
+    expect(ids).not.toContain("ex-bird-dog");
+  });
+
+  it("does NOT swap a move whose progressionId is null", () => {
+    // ex-90-90-breathing is a terminal move (progressionId: null); even at cap
+    // + full it must stay put (only its duration may bump).
+    const sixClean9090 = Array.from({ length: 6 }, () =>
+      wlog([{ exerciseId: "ex-90-90-breathing", completed: true }])
+    );
+    const s = generateSession(inputs({ checkIn: fullReady, workoutLogs: sixClean9090 }));
+    const ids = s.blocks.flatMap((b) => b.exercises).map((e) => e.id);
+    expect(ids).toContain("ex-90-90-breathing");
+    expect(s.reasoning.some((r) => r.includes("naik ke variasi lebih menantang"))).toBe(
+      false
+    );
+  });
+});
+
+describe("generateSession — M9 swap dedup", () => {
+  // A minimal exercise pool of just ex-dead-bug (beginner, progressionId
+  // ex-bird-dog) and ex-bird-dog (intermediate) themselves. Core's slot max
+  // is 2 at full/balanced, so pickForDomain naturally surfaces BOTH moves for
+  // this window — meaning ex-bird-dog is already among the domain's picks
+  // before the swap pass ever runs. If dead-bug's streak then triggers a swap
+  // to its own progression (bird-dog), the block would contain bird-dog
+  // twice unless the engine detects the target is already picked and skips
+  // the swap.
+  const deadBugAndBirdDog = EXERCISE_SEED.filter((e) =>
+    ["ex-dead-bug", "ex-bird-dog"].includes(e.id)
+  );
+
+  const sixCleanDeadBug = [
+    wlog([{ exerciseId: "ex-unrelated-warmup", completed: false }]),
+    ...Array.from({ length: 6 }, () =>
+      wlog([{ exerciseId: "ex-dead-bug", completed: true }])
+    ),
+  ];
+
+  const fullReady = checkIn({
+    painLevel: 1,
+    recovery: 5,
+    energyLevel: 5,
+    sleepQuality: 5,
+  });
+
+  it("never duplicates an exercise id within a block when the swap target is already picked", () => {
+    const s = generateSession(
+      inputs({
+        checkIn: fullReady,
+        exercises: deadBugAndBirdDog,
+        workoutLogs: sixCleanDeadBug,
+      })
+    );
+    for (const block of s.blocks) {
+      const ids = block.exercises.map((e) => e.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+    const allIds = s.blocks.flatMap((b) => b.exercises.map((e) => e.id));
+    expect(allIds.filter((id) => id === "ex-bird-dog").length).toBeLessThanOrEqual(1);
+  });
+});
+

@@ -122,6 +122,46 @@ export function deriveCapability(
   return { floorRank: clampRank(floor) };
 }
 
+/**
+ * Count the leading run of clean sessions for one move (newest-first).
+ * A session where the move is absent is skipped — not counted, not breaking —
+ * because low-intensity or short days legitimately drop moves. A session where
+ * the move is present but not clean (incomplete, or postSessionPain > 3) ends
+ * the run. Source of per-move progression state — no new store (M9).
+ */
+export function countCleanStreak(
+  exerciseId: string,
+  logs: WorkoutLog[]
+): number {
+  let streak = 0;
+  for (const log of logs) {
+    const entry = log.exercises.find((e) => e.exerciseId === exerciseId);
+    if (!entry) continue; // move absent → skip
+    const clean = entry.completed && (log.postSessionPain ?? 0) <= 3;
+    if (!clean) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/** Duration ceiling added by progression (M9, moderate cadence). */
+const PROGRESS_STEP_SECONDS = 15;
+const PROGRESS_CAP_SECONDS = 45;
+const PROGRESS_STREAK_AT_CAP = 6; // 3 steps × 2 clean sessions each
+
+/**
+ * Prescribed hold for a move given its clean streak: +15s per 2 clean
+ * sessions, capped at +45s over the seed base. Deterministic; the seed
+ * duration is never mutated (caller clones).
+ */
+export function progressedDuration(base: number, streak: number): number {
+  const bump = Math.min(
+    PROGRESS_STEP_SECONDS * Math.floor(streak / 2),
+    PROGRESS_CAP_SECONDS
+  );
+  return base + bump;
+}
+
 // Difficulty ceiling for each intensity — the engine never picks a movement
 // harder than the day allows.
 const DIFFICULTY_CEILING: Record<SessionIntensity, number> = {
@@ -321,6 +361,8 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
 
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
+  let bumped = false;
+  const swaps: { from: string; to: string }[] = [];
   for (const step of sequence) {
     // mobility and pain weights are currently informational only (per spec §4);
     // only posture and strength influence per-domain slot boosting below.
@@ -349,8 +391,39 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
             preferHardest: effectivePreferHardest,
             allowedEquipment,
           });
+    // M9 overload: lengthen holds a move has earned (recovery ignores duration).
+    let transformed: Exercise[];
+    if (intensity === "recovery") {
+      transformed = picks;
+    } else {
+      // Track ids already committed for this domain so a swap can't emit a
+      // progression move that is already among the picks (or an earlier swap
+      // target) — that would duplicate the exercise and miscount the budget.
+      const committed = new Set(picks.map((ex) => ex.id));
+      transformed = picks.map((ex) => {
+        const streak = countCleanStreak(ex.id, inputs.workoutLogs ?? []);
+        // Ceiling + full readiness → offer the progression move.
+        if (streak >= PROGRESS_STREAK_AT_CAP && intensity === "full" && ex.progressionId) {
+          const next = exercises.find((e) => e.id === ex.progressionId);
+          const available =
+            next !== undefined &&
+            !committed.has(next.id) &&
+            next.equipment.every((item) => allowedEquipment.has(item));
+          if (available) {
+            committed.delete(ex.id);
+            committed.add(next.id);
+            swaps.push({ from: ex.name, to: next.name });
+            return { ...next }; // clone (like bump); its streak starts fresh
+          }
+        }
+        const dur = progressedDuration(ex.durationSeconds, streak);
+        if (dur !== ex.durationSeconds) bumped = true;
+        return dur === ex.durationSeconds ? ex : { ...ex, durationSeconds: dur };
+      });
+    }
+
     const fitted: Exercise[] = [];
-    for (const ex of picks) {
+    for (const ex of transformed) {
       if (usedSeconds + ex.durationSeconds > budgetSeconds && blocks.length > 0) {
         break;
       }
@@ -362,8 +435,10 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     }
   }
 
-  // 4. Progressive overload note (informational only in the MVP).
-  if (intensity === "full" && !trainedRecently) {
+  // 4. Progressive overload note (informational only in the MVP). Skip the
+  // generic "step up when it feels easy" nudge when a concrete swap already
+  // fired — the per-swap line below says it specifically, no need to repeat.
+  if (intensity === "full" && !trainedRecently && swaps.length === 0) {
     reasoning.push(
       "Kalau gerakan terasa mudah dan tanpa nyeri, naik ke progresinya."
     );
@@ -371,6 +446,16 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
 
   if (blocks.flatMap((b) => b.exercises).some((e) => e.difficulty === "advanced")) {
     reasoning.push("Kesiapan & progres bagus — termasuk variasi tingkat lanjut.");
+  }
+
+  if (bumped) {
+    reasoning.push(
+      "Sebagian gerakan naik durasi — kamu konsisten menyelesaikannya."
+    );
+  }
+
+  for (const s of swaps) {
+    reasoning.push(`${s.from} → ${s.to}: sudah mantap, naik ke variasi lebih menantang.`);
   }
 
   if (preset === "muscle-priority") {
