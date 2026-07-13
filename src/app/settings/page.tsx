@@ -29,6 +29,11 @@ const EQUIPMENT: { value: string; label: string; desc: string }[] = [
     label: "Pull-up bar",
     desc: "Buka program progresi pull-up.",
   },
+  {
+    value: "dip bars",
+    label: "Dip bars",
+    desc: "Palang dip / parallettes untuk progresi dip.",
+  },
 ];
 
 export default function SettingsPage() {

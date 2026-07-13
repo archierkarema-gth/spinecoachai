@@ -774,3 +774,31 @@ describe("generateSession — M10 recovery load", () => {
   });
 });
 
+describe("M11 dip equipment gating", () => {
+  const R = { beginner: 0, intermediate: 1, advanced: 2 };
+
+  it("excludes dip moves from strength when dip bars not owned", () => {
+    const picks = pickForDomain(
+      EXERCISE_SEED,
+      "strength",
+      R.beginner,
+      R.advanced,
+      20,
+      { allowedEquipment: new Set<string>() }
+    );
+    expect(picks.some((e) => e.id.startsWith("ex-dip") || e.id === "ex-negative-dip" || e.id === "ex-full-dip")).toBe(false);
+  });
+
+  it("includes dip moves when dip bars owned", () => {
+    const picks = pickForDomain(
+      EXERCISE_SEED,
+      "strength",
+      R.beginner,
+      R.advanced,
+      20,
+      { allowedEquipment: new Set(["dip bars"]) }
+    );
+    expect(picks.some((e) => e.equipment.includes("dip bars"))).toBe(true);
+  });
+});
+
