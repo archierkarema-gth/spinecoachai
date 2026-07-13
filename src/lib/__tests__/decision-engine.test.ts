@@ -498,8 +498,12 @@ describe("countCleanStreak", () => {
 });
 
 describe("EXERCISE_SEED integrity", () => {
+  it("has grown to 48 curated exercises", () => {
+    expect(EXERCISE_SEED.length).toBe(48);
+  });
+
   it("bodyweight moves have no equipment; geared moves list only known equipment", () => {
-    const known = new Set(["pull-up bar"]);
+    const known = new Set(["pull-up bar", "dip bars"]);
     for (const ex of EXERCISE_SEED) {
       expect(ex.equipment.every((item) => known.has(item))).toBe(true);
     }
