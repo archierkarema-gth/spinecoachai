@@ -392,12 +392,13 @@ describe("generateSession — muscle-priority preset", () => {
   });
 });
 
+let wlogSeq = 0;
 function wlog(
   exercises: { exerciseId: string; completed: boolean }[],
   postSessionPain = 0
 ): WorkoutLog {
   return {
-    id: `w-${Math.random()}`,
+    id: `w-${wlogSeq++}`,
     userId: "u1",
     createdAt: 0,
     movementFocus: "x",

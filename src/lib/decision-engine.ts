@@ -413,7 +413,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
             committed.delete(ex.id);
             committed.add(next.id);
             swaps.push({ from: ex.name, to: next.name });
-            return next; // its own base duration; its streak starts fresh
+            return { ...next }; // clone (like bump); its streak starts fresh
           }
         }
         const dur = progressedDuration(ex.durationSeconds, streak);
@@ -435,8 +435,10 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     }
   }
 
-  // 4. Progressive overload note (informational only in the MVP).
-  if (intensity === "full" && !trainedRecently) {
+  // 4. Progressive overload note (informational only in the MVP). Skip the
+  // generic "step up when it feels easy" nudge when a concrete swap already
+  // fired — the per-swap line below says it specifically, no need to repeat.
+  if (intensity === "full" && !trainedRecently && swaps.length === 0) {
     reasoning.push(
       "Kalau gerakan terasa mudah dan tanpa nyeri, naik ke progresinya."
     );
