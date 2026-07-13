@@ -15,6 +15,7 @@ import {
 } from "@/lib/decision-engine";
 import type { Exercise, SideEmphasis } from "@/lib/exercise-schemas";
 import { SessionPlayer } from "@/components/workout/session-player";
+import { equipmentBadges } from "@/lib/equipment-label";
 import type { CompletedExercise } from "@/lib/log-schemas";
 
 const SIDE_LABEL: Record<SideEmphasis, string> = {
@@ -206,9 +207,14 @@ export default function WorkoutPage() {
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                       {SIDE_LABEL[ex.sideEmphasis]}
                     </span>
-                    <span className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
-                      Bodyweight
-                    </span>
+                    {equipmentBadges(ex.equipment).map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success"
+                      >
+                        {label}
+                      </span>
+                    ))}
                   </div>
                   {ex.cues.length > 0 && (
                     <p className="mt-1.5 text-xs text-muted-foreground">
