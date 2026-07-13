@@ -239,6 +239,53 @@ export function decideIntensity(checkIn: CheckIn): SessionIntensity {
   return "moderate";
 }
 
+/** Weight each logged session's minutes by how hard it was. */
+const INTENSITY_WEIGHT: Record<string, number> = {
+  recovery: 0.25,
+  light: 0.5,
+  moderate: 0.75,
+  full: 1.0,
+};
+/** Unknown intensity strings fall back to the moderate weight. */
+const FALLBACK_WEIGHT = 0.75;
+/** Weighted-minute load over 48h that counts as "heavy" (~1.5 full sessions). */
+const HEAVY_LOAD_THRESHOLD = 45;
+const LOAD_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+/**
+ * Weighted training load in the 48h before `now`: Σ minutes × intensity
+ * weight. Future-dated logs and logs at/after the window edge are ignored.
+ * Exported for unit testing.
+ */
+export function recentLoad(workoutLogs: WorkoutLog[], now: number): number {
+  let load = 0;
+  for (const log of workoutLogs) {
+    const age = now - log.createdAt;
+    if (age < 0 || age >= LOAD_WINDOW_MS) continue;
+    const weight = INTENSITY_WEIGHT[log.intensity] ?? FALLBACK_WEIGHT;
+    load += log.estimatedMinutes * weight;
+  }
+  return load;
+}
+
+/**
+ * Ease today's intensity one tier when the last 48h were heavy AND recovery
+ * is only marginal. Safety-first: base `recovery`/`light` are never lowered
+ * (recovery is the pain/safety lane), and the drop is at most one tier.
+ * Exported for unit testing.
+ */
+export function applyLoadSuppression(
+  base: SessionIntensity,
+  checkIn: CheckIn,
+  workoutLogs: WorkoutLog[],
+  now: number
+): SessionIntensity {
+  if (base !== "full" && base !== "moderate") return base;
+  if (checkIn.recovery > 3) return base;
+  if (recentLoad(workoutLogs, now) < HEAVY_LOAD_THRESHOLD) return base;
+  return base === "full" ? "moderate" : "light";
+}
+
 /**
  * Pick exercises for a domain within a difficulty window, bodyweight only, with
  * generic left/right balancing. Never targets a specific curve (docs/04).

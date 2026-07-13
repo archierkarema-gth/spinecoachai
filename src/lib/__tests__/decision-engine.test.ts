@@ -7,6 +7,8 @@ import {
   pickForDomain,
   countCleanStreak,
   progressedDuration,
+  recentLoad,
+  applyLoadSuppression,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
@@ -639,6 +641,93 @@ describe("generateSession — M9 swap dedup", () => {
     }
     const allIds = s.blocks.flatMap((b) => b.exercises.map((e) => e.id));
     expect(allIds.filter((id) => id === "ex-bird-dog").length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("recentLoad", () => {
+  const H = 60 * 60 * 1000;
+  function log(overrides: Partial<WorkoutLog>): WorkoutLog {
+    return {
+      id: "l1",
+      userId: "u1",
+      createdAt: 0,
+      movementFocus: "x",
+      intensity: "full",
+      estimatedMinutes: 30,
+      exercises: [],
+      ...overrides,
+    };
+  }
+
+  it("sums minutes weighted by intensity within 48h", () => {
+    const now = 100 * H;
+    // full 30m (weight 1.0 = 30) + light 30m (weight 0.5 = 15) = 45
+    const logs = [
+      log({ createdAt: now - 2 * H, intensity: "full", estimatedMinutes: 30 }),
+      log({ createdAt: now - 10 * H, intensity: "light", estimatedMinutes: 30 }),
+    ];
+    expect(recentLoad(logs, now)).toBe(45);
+  });
+
+  it("excludes logs at or beyond 48h", () => {
+    const now = 100 * H;
+    const logs = [log({ createdAt: now - 49 * H, intensity: "full", estimatedMinutes: 30 })];
+    expect(recentLoad(logs, now)).toBe(0);
+  });
+
+  it("includes a log at 47h", () => {
+    const now = 100 * H;
+    const logs = [log({ createdAt: now - 47 * H, intensity: "full", estimatedMinutes: 30 })];
+    expect(recentLoad(logs, now)).toBe(30);
+  });
+
+  it("ignores future-dated logs", () => {
+    const now = 100 * H;
+    const logs = [log({ createdAt: now + 2 * H, intensity: "full", estimatedMinutes: 30 })];
+    expect(recentLoad(logs, now)).toBe(0);
+  });
+
+  it("treats an unknown intensity string with the moderate fallback weight", () => {
+    const now = 100 * H;
+    const logs = [log({ createdAt: now - 1 * H, intensity: "weird", estimatedMinutes: 40 })];
+    // fallback weight 0.75 → 40 * 0.75 = 30
+    expect(recentLoad(logs, now)).toBe(30);
+  });
+});
+
+describe("applyLoadSuppression", () => {
+  const H = 60 * 60 * 1000;
+  const now = 100 * H;
+  function heavyLogs(): WorkoutLog[] {
+    // two full 30m sessions in 48h → load 60 (>= 45)
+    return [
+      { id: "a", userId: "u1", createdAt: now - 2 * H, movementFocus: "x", intensity: "full", estimatedMinutes: 30, exercises: [] },
+      { id: "b", userId: "u1", createdAt: now - 20 * H, movementFocus: "x", intensity: "full", estimatedMinutes: 30, exercises: [] },
+    ];
+  }
+
+  it("drops full to moderate when load heavy and recovery <= 3", () => {
+    expect(applyLoadSuppression("full", checkIn({ recovery: 3 }), heavyLogs(), now)).toBe("moderate");
+  });
+
+  it("drops moderate to light when load heavy and recovery <= 3", () => {
+    expect(applyLoadSuppression("moderate", checkIn({ recovery: 2 }), heavyLogs(), now)).toBe("light");
+  });
+
+  it("does not drop when recovery >= 4 even if load heavy", () => {
+    expect(applyLoadSuppression("full", checkIn({ recovery: 4 }), heavyLogs(), now)).toBe("full");
+  });
+
+  it("does not drop when load is light", () => {
+    const lightLogs: WorkoutLog[] = [
+      { id: "a", userId: "u1", createdAt: now - 2 * H, movementFocus: "x", intensity: "light", estimatedMinutes: 20, exercises: [] },
+    ];
+    expect(applyLoadSuppression("full", checkIn({ recovery: 2 }), lightLogs, now)).toBe("full");
+  });
+
+  it("never touches base light or recovery", () => {
+    expect(applyLoadSuppression("light", checkIn({ recovery: 2 }), heavyLogs(), now)).toBe("light");
+    expect(applyLoadSuppression("recovery", checkIn({ recovery: 2 }), heavyLogs(), now)).toBe("recovery");
   });
 });
 
