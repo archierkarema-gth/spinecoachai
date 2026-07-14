@@ -66,3 +66,55 @@ describe("painTrend", () => {
     expect(trend.map((t) => t.painLevel)).toEqual([6, 5, 3]);
   });
 });
+
+import {
+  latestBenchmark,
+  personalBest,
+  benchmarkTrend,
+} from "@/lib/progress";
+import type { BenchmarkLog } from "@/lib/log-schemas";
+
+function bench(
+  createdAt: number,
+  value: number,
+  type: BenchmarkLog["type"] = "plank_hold"
+): BenchmarkLog {
+  return { id: `b-${createdAt}`, userId: "u1", createdAt, type, value };
+}
+
+describe("latestBenchmark", () => {
+  it("returns null with no logs", () => {
+    expect(latestBenchmark([], "plank_hold")).toBeNull();
+  });
+
+  it("returns the most recent value for the given type", () => {
+    const logs = [bench(1000, 30), bench(3000, 50), bench(2000, 40)];
+    expect(latestBenchmark(logs, "plank_hold")).toBe(50);
+  });
+});
+
+describe("personalBest", () => {
+  it("returns null with no logs", () => {
+    expect(personalBest([], "plank_hold")).toBeNull();
+  });
+
+  it("returns the max value for the given type", () => {
+    const logs = [bench(1000, 30), bench(2000, 55), bench(3000, 40)];
+    expect(personalBest(logs, "plank_hold")).toBe(55);
+  });
+});
+
+describe("benchmarkTrend", () => {
+  it("returns an empty array with no logs", () => {
+    expect(benchmarkTrend([], "plank_hold")).toEqual([]);
+  });
+
+  it("returns points oldest to newest for the given type", () => {
+    const logs = [bench(3000, 50), bench(1000, 30), bench(2000, 40)];
+    expect(benchmarkTrend(logs, "plank_hold")).toEqual([
+      { createdAt: 1000, value: 30 },
+      { createdAt: 2000, value: 40 },
+      { createdAt: 3000, value: 50 },
+    ]);
+  });
+});

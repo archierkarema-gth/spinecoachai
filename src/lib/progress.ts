@@ -1,4 +1,9 @@
-import type { WorkoutLog, PainLog } from "@/lib/log-schemas";
+import type {
+  BenchmarkLog,
+  BenchmarkType,
+  PainLog,
+  WorkoutLog,
+} from "@/lib/log-schemas";
 
 /**
  * Pure progress calculations for the Progress dashboard. No storage or UI —
@@ -70,4 +75,37 @@ export function painTrend(
       })),
   ];
   return points.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/** Most recent value logged for a benchmark type, or null if none exist. */
+export function latestBenchmark(
+  logs: BenchmarkLog[],
+  type: BenchmarkType
+): number | null {
+  const matching = logs.filter((l) => l.type === type);
+  if (matching.length === 0) return null;
+  return matching.reduce((latest, l) =>
+    l.createdAt > latest.createdAt ? l : latest
+  ).value;
+}
+
+/** Highest value ever logged for a benchmark type, or null if none exist. */
+export function personalBest(
+  logs: BenchmarkLog[],
+  type: BenchmarkType
+): number | null {
+  const values = logs.filter((l) => l.type === type).map((l) => l.value);
+  if (values.length === 0) return null;
+  return Math.max(...values);
+}
+
+/** Benchmark values for a type, ordered oldest → newest, for a trend graph. */
+export function benchmarkTrend(
+  logs: BenchmarkLog[],
+  type: BenchmarkType
+): { createdAt: number; value: number }[] {
+  return logs
+    .filter((l) => l.type === type)
+    .map((l) => ({ createdAt: l.createdAt, value: l.value }))
+    .sort((a, b) => a.createdAt - b.createdAt);
 }
