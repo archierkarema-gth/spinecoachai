@@ -4,14 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { TopBar } from "@/components/nav/top-bar";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Sparkline } from "@/components/ui/sparkline";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
-import { getPainLogsForUser } from "@/lib/db";
+import { getPainLogsForUser, putBenchmarkLog } from "@/lib/db";
 import {
   computeStreak,
   sessionsInLastDays,
   painTrend,
+  latestBenchmark,
+  personalBest,
+  benchmarkTrend,
 } from "@/lib/progress";
-import type { PainLog } from "@/lib/log-schemas";
+import type { PainLog, BenchmarkLog } from "@/lib/log-schemas";
 
 function formatDate(ts: number): string {
   return new Date(ts).toLocaleDateString("id-ID", {
@@ -21,8 +27,10 @@ function formatDate(ts: number): string {
 }
 
 export default function ProgressPage() {
-  const { hydrated, hydrate, user, workoutLogs } = useAppStore();
+  const { hydrated, hydrate, user, workoutLogs, benchmarkLogs, refreshBenchmarks } = useAppStore();
   const [painLogs, setPainLogs] = useState<PainLog[]>([]);
+  const [plankSeconds, setPlankSeconds] = useState("");
+  const [savingPlank, setSavingPlank] = useState(false);
 
   useEffect(() => {
     if (!hydrated) hydrate();
@@ -41,6 +49,40 @@ export default function ProgressPage() {
     () => painTrend(painLogs, workoutLogs),
     [painLogs, workoutLogs]
   );
+  const plankLatest = useMemo(
+    () => latestBenchmark(benchmarkLogs, "plank_hold"),
+    [benchmarkLogs]
+  );
+  const plankBest = useMemo(
+    () => personalBest(benchmarkLogs, "plank_hold"),
+    [benchmarkLogs]
+  );
+  const plankTrend = useMemo(
+    () => benchmarkTrend(benchmarkLogs, "plank_hold"),
+    [benchmarkLogs]
+  );
+  const plankTrendMax = useMemo(
+    () => Math.max(60, ...plankTrend.map((p) => p.value)),
+    [plankTrend]
+  );
+
+  async function onSavePlank() {
+    if (!user) return;
+    const seconds = Number(plankSeconds);
+    if (!Number.isFinite(seconds) || seconds <= 0) return;
+    setSavingPlank(true);
+    const log: BenchmarkLog = {
+      id: crypto.randomUUID(),
+      userId: user.id,
+      createdAt: Date.now(),
+      type: "plank_hold",
+      value: seconds,
+    };
+    await putBenchmarkLog(log);
+    await refreshBenchmarks();
+    setPlankSeconds("");
+    setSavingPlank(false);
+  }
 
   return (
     <div>
@@ -73,6 +115,54 @@ export default function ProgressPage() {
               Terakhir: {trend[trend.length - 1].painLevel}/10
             </p>
           )}
+        </Card>
+
+        <Card>
+          <CardTitle>Tes plank</CardTitle>
+          {plankLatest === null ? (
+            <p className="text-sm text-muted-foreground">
+              Belum ada tes plank tercatat.
+            </p>
+          ) : (
+            <div className="flex items-baseline gap-3">
+              <p className="tabular font-display text-3xl text-primary-deep">
+                {plankLatest}
+                <span className="ml-1 text-sm font-sans text-muted-foreground">
+                  detik
+                </span>
+              </p>
+              {plankBest !== null && (
+                <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent">
+                  PB {plankBest}s
+                </span>
+              )}
+            </div>
+          )}
+          {plankTrend.length > 0 && (
+            <div className="mt-2">
+              <Sparkline
+                values={plankTrend.map((p) => p.value)}
+                max={plankTrendMax}
+              />
+            </div>
+          )}
+          <div className="mt-3 flex items-end gap-2">
+            <div className="flex-1">
+              <Label htmlFor="plank-seconds">Catat tes (detik)</Label>
+              <Input
+                id="plank-seconds"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                placeholder="mis. 45"
+                value={plankSeconds}
+                onChange={(e) => setPlankSeconds(e.target.value)}
+              />
+            </div>
+            <Button onClick={onSavePlank} disabled={savingPlank || !user || !plankSeconds}>
+              {savingPlank ? "Menyimpan…" : "Simpan"}
+            </Button>
+          </div>
         </Card>
 
         <section>
