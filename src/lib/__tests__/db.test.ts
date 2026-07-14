@@ -7,6 +7,8 @@ import {
   getUser,
   putAssessment,
   putUser,
+  getBenchmarkLogsForUser,
+  putBenchmarkLog,
 } from "@/lib/db";
 
 // Tests share one fake-indexeddb instance (module-level db handle in
@@ -53,5 +55,32 @@ describe("db layer", () => {
 
     const latest = await getLatestAssessmentForUser("u1");
     expect(latest?.id).toBe("a2");
+  });
+});
+
+describe("benchmark logs", () => {
+  it("stores benchmark logs and returns them newest first for a user", async () => {
+    const older = {
+      id: "bl1",
+      userId: "u-bench",
+      createdAt: 1000,
+      type: "plank_hold" as const,
+      value: 30,
+    };
+    const newer = {
+      id: "bl2",
+      userId: "u-bench",
+      createdAt: 2000,
+      type: "plank_hold" as const,
+      value: 40,
+    };
+
+    await putBenchmarkLog(older);
+    await putBenchmarkLog(newer);
+
+    const all = await getBenchmarkLogsForUser("u-bench");
+    expect(all).toHaveLength(2);
+    expect(all[0].id).toBe("bl2");
+    expect(all[1].id).toBe("bl1");
   });
 });
