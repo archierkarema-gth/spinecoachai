@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import type { Assessment, User } from "@/lib/schemas";
 import type { CheckIn } from "@/lib/exercise-schemas";
-import type { WorkoutLog } from "@/lib/log-schemas";
+import type { BenchmarkLog, WorkoutLog } from "@/lib/log-schemas";
 import {
+  getBenchmarkLogsForUser,
   getFirstUser,
   getLatestAssessmentForUser,
   getLatestCheckInForUser,
@@ -17,8 +18,10 @@ interface AppState {
   latestAssessment: Assessment | null;
   latestCheckIn: CheckIn | null;
   workoutLogs: WorkoutLog[];
+  benchmarkLogs: BenchmarkLog[];
   hydrate: () => Promise<void>;
   refreshLogs: () => Promise<void>;
+  refreshBenchmarks: () => Promise<void>;
   setUser: (user: User) => void;
   setLatestAssessment: (assessment: Assessment) => void;
   setLatestCheckIn: (checkIn: CheckIn) => void;
@@ -30,23 +33,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   latestAssessment: null,
   latestCheckIn: null,
   workoutLogs: [],
+  benchmarkLogs: [],
 
   hydrate: async () => {
     await seedExercisesIfEmpty();
     await seedPersonalDataIfEmpty();
     const user = (await getFirstUser()) ?? null;
-    const [latestAssessment, latestCheckIn, workoutLogs] = user
+    const [latestAssessment, latestCheckIn, workoutLogs, benchmarkLogs] = user
       ? await Promise.all([
           getLatestAssessmentForUser(user.id),
           getLatestCheckInForUser(user.id),
           getWorkoutLogsForUser(user.id),
+          getBenchmarkLogsForUser(user.id),
         ])
-      : [undefined, undefined, []];
+      : [undefined, undefined, [], []];
     set({
       user,
       latestAssessment: latestAssessment ?? null,
       latestCheckIn: latestCheckIn ?? null,
       workoutLogs: workoutLogs ?? [],
+      benchmarkLogs: benchmarkLogs ?? [],
       hydrated: true,
     });
   },
@@ -56,6 +62,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!user) return;
     const workoutLogs = await getWorkoutLogsForUser(user.id);
     set({ workoutLogs });
+  },
+
+  refreshBenchmarks: async () => {
+    const { user } = get();
+    if (!user) return;
+    const benchmarkLogs = await getBenchmarkLogsForUser(user.id);
+    set({ benchmarkLogs });
   },
 
   setUser: (user) => set({ user }),
