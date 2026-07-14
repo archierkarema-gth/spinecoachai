@@ -6,6 +6,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Sparkline } from "@/components/ui/sparkline";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { getPainLogsForUser, putBenchmarkLog } from "@/lib/db";
@@ -30,6 +31,7 @@ export default function ProgressPage() {
   const { hydrated, hydrate, user, workoutLogs, benchmarkLogs, refreshBenchmarks } = useAppStore();
   const [painLogs, setPainLogs] = useState<PainLog[]>([]);
   const [plankSeconds, setPlankSeconds] = useState("");
+  const [plankNote, setPlankNote] = useState("");
   const [savingPlank, setSavingPlank] = useState(false);
 
   useEffect(() => {
@@ -77,10 +79,12 @@ export default function ProgressPage() {
       createdAt: Date.now(),
       type: "plank_hold",
       value: seconds,
+      note: plankNote || undefined,
     };
     await putBenchmarkLog(log);
     await refreshBenchmarks();
     setPlankSeconds("");
+    setPlankNote("");
     setSavingPlank(false);
   }
 
@@ -143,25 +147,37 @@ export default function ProgressPage() {
               <Sparkline
                 values={plankTrend.map((p) => p.value)}
                 max={plankTrendMax}
+                ariaLabel={`Tren plank, terakhir ${plankLatest} detik`}
               />
             </div>
           )}
-          <div className="mt-3 flex items-end gap-2">
-            <div className="flex-1">
-              <Label htmlFor="plank-seconds">Catat tes (detik)</Label>
-              <Input
-                id="plank-seconds"
-                type="number"
-                min={1}
-                inputMode="numeric"
-                placeholder="mis. 45"
-                value={plankSeconds}
-                onChange={(e) => setPlankSeconds(e.target.value)}
+          <div className="mt-3 flex flex-col gap-2">
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Label htmlFor="plank-seconds">Catat tes (detik)</Label>
+                <Input
+                  id="plank-seconds"
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  placeholder="mis. 45"
+                  value={plankSeconds}
+                  onChange={(e) => setPlankSeconds(e.target.value)}
+                />
+              </div>
+              <Button onClick={onSavePlank} disabled={savingPlank || !user || !plankSeconds}>
+                {savingPlank ? "Menyimpan…" : "Simpan"}
+              </Button>
+            </div>
+            <div>
+              <Label htmlFor="plank-note">Catatan (opsional)</Label>
+              <Textarea
+                id="plank-note"
+                placeholder="mis. terasa lebih stabil"
+                value={plankNote}
+                onChange={(e) => setPlankNote(e.target.value)}
               />
             </div>
-            <Button onClick={onSavePlank} disabled={savingPlank || !user || !plankSeconds}>
-              {savingPlank ? "Menyimpan…" : "Simpan"}
-            </Button>
           </div>
         </Card>
 

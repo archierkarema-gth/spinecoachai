@@ -6,10 +6,12 @@ export function Sparkline({
   values,
   max = 10,
   height = 44,
+  ariaLabel,
 }: {
   values: number[];
   max?: number;
   height?: number;
+  ariaLabel?: string;
 }) {
   if (values.length === 0) {
     return (
@@ -35,7 +37,7 @@ export function Sparkline({
       viewBox={`0 0 ${width} ${height}`}
       className="w-full"
       role="img"
-      aria-label={`Tren nyeri, nilai terakhir ${values[n - 1]}`}
+      aria-label={ariaLabel ?? `Tren nyeri, nilai terakhir ${values[n - 1]}`}
     >
       <path
         d={path}
