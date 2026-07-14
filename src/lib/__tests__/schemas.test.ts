@@ -5,6 +5,10 @@ import {
   userSchema,
   type RedFlagSymptoms,
 } from "@/lib/schemas";
+import {
+  benchmarkLogSchema,
+  newBenchmarkLogInputSchema,
+} from "@/lib/log-schemas";
 
 const noFlags: RedFlagSymptoms = {
   neurologicalSymptoms: false,
@@ -80,5 +84,43 @@ describe("userSchema personalization fields", () => {
     });
     expect(u.trainingPreset).toBe("muscle-priority");
     expect(u.ownedEquipment).toEqual(["pull-up bar"]);
+  });
+});
+
+describe("benchmarkLogSchema", () => {
+  const validLog = {
+    id: "b1",
+    userId: "user-1",
+    createdAt: 1000,
+    type: "plank_hold" as const,
+    value: 45,
+  };
+
+  it("accepts a valid plank_hold log", () => {
+    expect(benchmarkLogSchema.safeParse(validLog).success).toBe(true);
+  });
+
+  it("accepts an optional note", () => {
+    const result = benchmarkLogSchema.safeParse({ ...validLog, note: "Terasa lebih kuat" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a zero value", () => {
+    expect(benchmarkLogSchema.safeParse({ ...validLog, value: 0 }).success).toBe(false);
+  });
+
+  it("rejects a negative value", () => {
+    expect(benchmarkLogSchema.safeParse({ ...validLog, value: -5 }).success).toBe(false);
+  });
+
+  it("rejects an unknown type", () => {
+    expect(benchmarkLogSchema.safeParse({ ...validLog, type: "push_up" }).success).toBe(false);
+  });
+});
+
+describe("newBenchmarkLogInputSchema", () => {
+  it("accepts a payload without id and createdAt", () => {
+    const input = { userId: "user-1", type: "plank_hold" as const, value: 30 };
+    expect(newBenchmarkLogInputSchema.safeParse(input).success).toBe(true);
   });
 });

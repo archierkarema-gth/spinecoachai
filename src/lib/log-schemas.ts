@@ -44,3 +44,22 @@ export const newPainLogInputSchema = painLogSchema.omit({
   createdAt: true,
 });
 export type NewPainLogInput = z.infer<typeof newPainLogInputSchema>;
+
+export const benchmarkTypeEnum = z.enum(["plank_hold"]);
+export type BenchmarkType = z.infer<typeof benchmarkTypeEnum>;
+
+export const benchmarkLogSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  createdAt: z.number(),
+  type: benchmarkTypeEnum,
+  value: z.number().positive(),
+  note: z.string().max(300).optional(),
+});
+export type BenchmarkLog = z.infer<typeof benchmarkLogSchema>;
+
+export const newBenchmarkLogInputSchema = benchmarkLogSchema.omit({
+  id: true,
+  createdAt: true,
+});
+export type NewBenchmarkLogInput = z.infer<typeof newBenchmarkLogInputSchema>;
