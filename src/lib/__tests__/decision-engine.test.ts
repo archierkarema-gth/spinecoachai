@@ -14,7 +14,7 @@ import {
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import type { Assessment } from "@/lib/schemas";
 import type { CheckIn } from "@/lib/exercise-schemas";
-import type { WorkoutLog } from "@/lib/log-schemas";
+import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 import { exerciseSchema } from "@/lib/exercise-schemas";
 
 const noRedFlags = {
@@ -153,6 +153,64 @@ describe("deriveGoalWeights", () => {
     });
     expect(w.pain).toBeGreaterThan(0);
     expect(w.mobility).toBeGreaterThan(0);
+  });
+
+  it("is unaffected when no reassessment is passed (backward compatible)", () => {
+    const withoutArg = deriveGoalWeights(baseAssessment);
+    const withUndefined = deriveGoalWeights(baseAssessment, undefined);
+    expect(withoutArg).toEqual(withUndefined);
+  });
+
+  it("bumps mobility when flexibility is low", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withLowFlex = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 2,
+      balance: 4,
+      breathingQuality: 4,
+    });
+    expect(withLowFlex.mobility).toBeGreaterThan(base.mobility);
+  });
+
+  it("bumps posture when balance is low", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withLowBalance = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 4,
+      balance: 1,
+      breathingQuality: 4,
+    });
+    expect(withLowBalance.posture).toBeGreaterThan(base.posture);
+  });
+
+  it("bumps posture when breathing quality is low", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withLowBreath = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 4,
+      balance: 4,
+      breathingQuality: 2,
+    });
+    expect(withLowBreath.posture).toBeGreaterThan(base.posture);
+  });
+
+  it("does not bump anything when all reassessment scores are healthy", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withHealthy = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 4,
+      balance: 4,
+      breathingQuality: 4,
+    });
+    expect(withHealthy).toEqual(base);
   });
 });
 

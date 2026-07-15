@@ -5,7 +5,7 @@ import type {
   Exercise,
   ExerciseDomain,
 } from "@/lib/exercise-schemas";
-import type { WorkoutLog } from "@/lib/log-schemas";
+import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 
 /**
  * AI Decision Engine (docs/05_AI_Decision_Engine.md).
@@ -69,16 +69,33 @@ const GOAL_KEYWORDS: Record<keyof GoalWeights, string[]> = {
  * Derive focus weights from the free-text primaryGoals. Deterministic keyword
  * scan; when nothing matches, fall back to a balanced posture+strength default.
  * Weights bias per-domain slot counts, never add or remove safety domains.
+ *
+ * `latestReassessment` (M13, optional) adds a deterministic bump on top of
+ * the keyword scan: low flexibility bumps mobility directly; low balance or
+ * low breathing quality bump posture, since posture is the existing weight
+ * that gates extra stability/breathing domain slots in generateSession.
  */
-export function deriveGoalWeights(assessment: Assessment): GoalWeights {
+export function deriveGoalWeights(
+  assessment: Assessment,
+  latestReassessment?: ReassessmentLog
+): GoalWeights {
   const text = (assessment.primaryGoals ?? "").toLowerCase();
   const weights: GoalWeights = { posture: 0, strength: 0, mobility: 0, pain: 0 };
   for (const key of Object.keys(GOAL_KEYWORDS) as (keyof GoalWeights)[]) {
     if (GOAL_KEYWORDS[key].some((kw) => text.includes(kw))) weights[key] = 1;
   }
   const anyMatch = Object.values(weights).some((v) => v > 0);
-  if (!anyMatch) return { posture: 1, strength: 1, mobility: 0, pain: 0 };
-  return weights;
+  const base = anyMatch
+    ? weights
+    : { posture: 1, strength: 1, mobility: 0, pain: 0 };
+
+  if (!latestReassessment) return base;
+  const result = { ...base };
+  const REASSESSMENT_LOW = 2;
+  if (latestReassessment.flexibility <= REASSESSMENT_LOW) result.mobility += 1;
+  if (latestReassessment.balance <= REASSESSMENT_LOW) result.posture += 1;
+  if (latestReassessment.breathingQuality <= REASSESSMENT_LOW) result.posture += 1;
+  return result;
 }
 
 export interface Capability {
