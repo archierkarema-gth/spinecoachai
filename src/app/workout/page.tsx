@@ -24,6 +24,8 @@ const SIDE_LABEL: Record<SideEmphasis, string> = {
   right: "Sisi kanan",
 };
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
 export default function WorkoutPage() {
   const router = useRouter();
   const {
@@ -69,9 +71,9 @@ export default function WorkoutPage() {
     latestReassessment,
   ]);
 
-  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-  const needsReassessment =
-    !latestReassessment || Date.now() - latestReassessment.createdAt >= SEVEN_DAYS_MS;
+  const needsReassessment = useMemo(() => {
+    return !latestReassessment || Date.now() - latestReassessment.createdAt >= SEVEN_DAYS_MS;
+  }, [latestReassessment]);
 
   async function finishSession(result: {
     completed: CompletedExercise[];
