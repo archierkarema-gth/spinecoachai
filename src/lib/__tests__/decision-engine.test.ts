@@ -835,6 +835,46 @@ describe("shouldDeload", () => {
   it("returns false with no logs", () => {
     expect(shouldDeload([], now)).toBe(false);
   });
+
+  it("treats a log exactly on a window's start boundary as inside that window (inclusive)", () => {
+    // now = 28*DAY. Window i=0 is [21*DAY, 28*DAY) i.e. daysAgo in (0,7].
+    // daysAgo=7 -> createdAt = 21*DAY, exactly windowStart of window i=0.
+    // Window i=0 has ONLY this boundary log; if it were (wrongly) excluded,
+    // window i=0 would be empty and shouldDeload would return false.
+    const logs = [
+      heavyLog(7, "full"), // boundary log — must land in window i=0
+      heavyLog(9, "full"),
+      heavyLog(11, "full"),
+      heavyLog(13, "full"), // window i=1
+      heavyLog(16, "full"),
+      heavyLog(18, "full"),
+      heavyLog(20, "full"), // window i=2
+      heavyLog(23, "full"),
+      heavyLog(25, "full"),
+      heavyLog(27, "full"), // window i=3
+    ];
+    expect(shouldDeload(logs, now)).toBe(true);
+  });
+
+  it("excludes a log exactly on a window's end boundary from that window (exclusive)", () => {
+    // daysAgo=14 -> createdAt = 14*DAY, exactly windowEnd of window i=2 AND
+    // windowStart of window i=1. Window i=1 has ONLY this boundary log; if it
+    // were (wrongly) counted into window i=2 instead, window i=1 would be
+    // empty and shouldDeload would return false.
+    const logs = [
+      heavyLog(1, "full"),
+      heavyLog(3, "full"),
+      heavyLog(5, "full"), // window i=0
+      heavyLog(14, "full"), // boundary log — must land in window i=1, not i=2
+      heavyLog(16, "full"),
+      heavyLog(18, "full"),
+      heavyLog(20, "full"), // window i=2
+      heavyLog(23, "full"),
+      heavyLog(25, "full"),
+      heavyLog(27, "full"), // window i=3
+    ];
+    expect(shouldDeload(logs, now)).toBe(true);
+  });
 });
 
 describe("applyDeloadCap", () => {
@@ -947,6 +987,34 @@ describe("generateSession — M13 deload", () => {
       })
     );
     expect(result.intensity).toBe("full");
+    expect(result.reasoning.some((r) => r.includes("deload"))).toBe(false);
+  });
+
+  it("is a deload week but does not note it when high pain already forces recovery", () => {
+    const now = 1_000_000_000;
+    const heavyLogs: WorkoutLog[] = [1, 8, 15, 22].map((d) => ({
+      id: `w-${d}`,
+      userId: "u1",
+      createdAt: now - d * DAY,
+      movementFocus: "x",
+      intensity: "full",
+      estimatedMinutes: 30,
+      exercises: [{ exerciseId: "e1", name: "e1", domain: "core", completed: true }],
+      postSessionPain: 1,
+    }));
+    const result = generateSession(
+      inputs({
+        checkIn: checkIn({
+          createdAt: now,
+          painLevel: 8,
+          recovery: 5,
+          energyLevel: 5,
+          sleepQuality: 5,
+        }),
+        workoutLogs: heavyLogs,
+      })
+    );
+    expect(result.intensity).toBe("recovery");
     expect(result.reasoning.some((r) => r.includes("deload"))).toBe(false);
   });
 });
