@@ -9,6 +9,8 @@ import {
   progressedDuration,
   recentLoad,
   applyLoadSuppression,
+  shouldDeload,
+  applyDeloadCap,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
@@ -793,6 +795,71 @@ describe("applyLoadSuppression", () => {
   });
 });
 
+describe("shouldDeload", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = 28 * DAY; // fixed reference so week windows land on clean boundaries
+
+  function heavyLog(daysAgo: number, intensity: string): WorkoutLog {
+    return {
+      id: `w-${daysAgo}`,
+      userId: "u1",
+      createdAt: now - daysAgo * DAY,
+      movementFocus: "x",
+      intensity,
+      estimatedMinutes: 30,
+      exercises: [{ exerciseId: "e1", name: "e1", domain: "core", completed: true }],
+      postSessionPain: 1,
+    };
+  }
+
+  it("returns true when all 4 weeks average moderate or above", () => {
+    const logs = [1, 8, 15, 22].map((d) => heavyLog(d, "full"));
+    expect(shouldDeload(logs, now)).toBe(true);
+  });
+
+  it("returns false when one of the 4 weeks dips below moderate", () => {
+    const logs = [heavyLog(1, "full"), heavyLog(8, "light"), heavyLog(15, "full"), heavyLog(22, "full")];
+    expect(shouldDeload(logs, now)).toBe(false);
+  });
+
+  it("returns false when a week window has no sessions at all", () => {
+    const logs = [heavyLog(1, "full"), heavyLog(15, "full"), heavyLog(22, "full")];
+    expect(shouldDeload(logs, now)).toBe(false);
+  });
+
+  it("returns false with fewer than 28 days of history", () => {
+    const logs = [heavyLog(1, "full"), heavyLog(8, "full")];
+    expect(shouldDeload(logs, now)).toBe(false);
+  });
+
+  it("returns false with no logs", () => {
+    expect(shouldDeload([], now)).toBe(false);
+  });
+});
+
+describe("applyDeloadCap", () => {
+  it("caps full to light during a deload week", () => {
+    expect(applyDeloadCap("full", true)).toBe("light");
+  });
+
+  it("caps moderate to light during a deload week", () => {
+    expect(applyDeloadCap("moderate", true)).toBe("light");
+  });
+
+  it("leaves light unchanged during a deload week", () => {
+    expect(applyDeloadCap("light", true)).toBe("light");
+  });
+
+  it("leaves recovery unchanged during a deload week", () => {
+    expect(applyDeloadCap("recovery", true)).toBe("recovery");
+  });
+
+  it("leaves intensity unchanged when not a deload week", () => {
+    expect(applyDeloadCap("full", false)).toBe("full");
+    expect(applyDeloadCap("moderate", false)).toBe("moderate");
+  });
+});
+
 describe("generateSession — M10 recovery load", () => {
   const H = 60 * 60 * 1000;
   const nowTs = 1_000_000; // checkIn().createdAt default
@@ -829,6 +896,58 @@ describe("generateSession — M10 recovery load", () => {
     );
     expect(s.intensity).toBe("full");
     expect(s.reasoning.some((r) => r.includes("Beban 2 hari terakhir"))).toBe(false);
+  });
+});
+
+describe("generateSession — M13 deload", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it("caps a full-readiness day to light when 4 weeks were consistently heavy", () => {
+    const now = 1_000_000_000;
+    const heavyLogs: WorkoutLog[] = [1, 8, 15, 22].map((d) => ({
+      id: `w-${d}`,
+      userId: "u1",
+      createdAt: now - d * DAY,
+      movementFocus: "x",
+      intensity: "full",
+      estimatedMinutes: 30,
+      exercises: [{ exerciseId: "e1", name: "e1", domain: "core", completed: true }],
+      postSessionPain: 1,
+    }));
+    const result = generateSession(
+      inputs({
+        checkIn: checkIn({
+          createdAt: now,
+          painLevel: 1,
+          recovery: 5,
+          energyLevel: 5,
+          sleepQuality: 5,
+        }),
+        workoutLogs: heavyLogs,
+      })
+    );
+    expect(result.intensity).toBe("light");
+    expect(
+      result.reasoning.some((r) => r.includes("deload"))
+    ).toBe(true);
+  });
+
+  it("does not deload without 4 consistent weeks of history", () => {
+    const now = 1_000_000_000;
+    const result = generateSession(
+      inputs({
+        checkIn: checkIn({
+          createdAt: now,
+          painLevel: 1,
+          recovery: 5,
+          energyLevel: 5,
+          sleepQuality: 5,
+        }),
+        workoutLogs: [],
+      })
+    );
+    expect(result.intensity).toBe("full");
+    expect(result.reasoning.some((r) => r.includes("deload"))).toBe(false);
   });
 });
 

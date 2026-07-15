@@ -47,6 +47,8 @@ export interface EngineInputs {
   workoutLogs?: WorkoutLog[];
   /** Equipment the user owns; unlocks geared moves. Defaults to []. */
   ownedEquipment?: string[];
+  /** Most recent weekly self-report (M13); undefined if never filled. */
+  latestReassessment?: ReassessmentLog;
   /** Owner-only session mix preset. Defaults to "balanced". */
   preset?: "balanced" | "muscle-priority";
 }
@@ -303,6 +305,51 @@ export function applyLoadSuppression(
   return base === "full" ? "moderate" : "light";
 }
 
+/** Rolling weekly windows for deload detection: 4 consecutive 7-day blocks. */
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DELOAD_LOOKBACK_WEEKS = 4;
+/** Weekly avg intensity weight at/above this counts as "consistently heavy". */
+const DELOAD_INTENSITY_THRESHOLD = 0.75; // INTENSITY_WEIGHT.moderate
+
+/**
+ * True when the last 4 consecutive weeks each averaged moderate-or-above
+ * intensity with at least one logged session — signals sustained heavy load
+ * that warrants a preventive deload week, independent of any single day's
+ * pain/recovery signal. A week with zero sessions never counts as "heavy",
+ * so a new or inconsistent user is never flagged. Exported for unit testing.
+ */
+export function shouldDeload(workoutLogs: WorkoutLog[], now: number): boolean {
+  for (let i = 0; i < DELOAD_LOOKBACK_WEEKS; i++) {
+    const windowEnd = now - i * WEEK_MS;
+    const windowStart = windowEnd - WEEK_MS;
+    const inWindow = workoutLogs.filter(
+      (l) => l.createdAt >= windowStart && l.createdAt < windowEnd
+    );
+    if (inWindow.length === 0) return false;
+    const avg =
+      inWindow.reduce(
+        (sum, l) => sum + (INTENSITY_WEIGHT[l.intensity] ?? FALLBACK_WEIGHT),
+        0
+      ) / inWindow.length;
+    if (avg < DELOAD_INTENSITY_THRESHOLD) return false;
+  }
+  return true;
+}
+
+/**
+ * Cap today's intensity to "light" during a deload week. Only lowers
+ * full/moderate; light and recovery are never touched (recovery stays the
+ * safety/pain lane). Exported for unit testing.
+ */
+export function applyDeloadCap(
+  intensity: SessionIntensity,
+  isDeloadWeek: boolean
+): SessionIntensity {
+  if (!isDeloadWeek) return intensity;
+  if (intensity === "full" || intensity === "moderate") return "light";
+  return intensity;
+}
+
 /**
  * Pick exercises for a domain within a difficulty window, bodyweight only, with
  * generic left/right balancing. Never targets a specific curve (docs/04).
@@ -390,7 +437,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
 
   // 2. Recovery / readiness.
   const baseIntensity = decideIntensity(checkIn);
-  const intensity = applyLoadSuppression(
+  const afterLoad = applyLoadSuppression(
     baseIntensity,
     checkIn,
     inputs.workoutLogs ?? [],
@@ -399,7 +446,10 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   // Load suppression only lowers a full/moderate base, and decideIntensity
   // already returns "light" for recovery <= 2 — so in the live pipeline the
   // gate (recovery <= 3) effectively fires at recovery === 3.
-  const suppressed = intensity !== baseIntensity;
+  const suppressed = afterLoad !== baseIntensity;
+  const isDeloadWeek = shouldDeload(inputs.workoutLogs ?? [], checkIn.createdAt);
+  const intensity = applyDeloadCap(afterLoad, isDeloadWeek);
+  const deloaded = intensity !== afterLoad;
   if (suppressed) {
     // The load line explains the lowered tier; skip the readiness descriptor
     // below so we don't also claim readiness was low when it wasn't.
@@ -416,6 +466,11 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     reasoning.push("Kesiapan tinggi — sesi penuh dengan progresi.");
   } else {
     reasoning.push("Kesiapan sedang — sesi standar terkontrol.");
+  }
+  if (deloaded) {
+    reasoning.push(
+      "Beban latihan konsisten tinggi 4 minggu terakhir — minggu ini deload, turunkan volume buat recovery."
+    );
   }
 
   // 3. Weekly plan (light touch): if trained in the last ~20h, ease off one step.
@@ -435,7 +490,7 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const capability = deriveCapability(assessment, inputs.workoutLogs ?? []);
   const floorRank = Math.min(capability.floorRank, ceilingRank);
   const preferHardest = capability.floorRank >= 2;
-  const weights = deriveGoalWeights(assessment);
+  const weights = deriveGoalWeights(assessment, inputs.latestReassessment);
   const allowedEquipment = new Set(inputs.ownedEquipment ?? []);
   const preset = inputs.preset ?? "balanced";
 
