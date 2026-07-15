@@ -43,13 +43,18 @@ export default function ReassessPage() {
       return;
     }
     setSaving(true);
-    await putReassessmentLog({
-      ...parsed.data,
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
-    });
-    await refreshReassessment();
-    router.push("/workout");
+    try {
+      await putReassessmentLog({
+        ...parsed.data,
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+      });
+      await refreshReassessment();
+      router.push("/workout");
+    } catch {
+      setSaving(false);
+      setError("Gagal menyimpan, coba lagi.");
+    }
   }
 
   if (hydrated && !latestAssessment) {
