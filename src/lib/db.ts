@@ -1,7 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Assessment, User } from "@/lib/schemas";
 import type { CheckIn, Exercise } from "@/lib/exercise-schemas";
-import type { BenchmarkLog, PainLog, WorkoutLog } from "@/lib/log-schemas";
+import type { BenchmarkLog, PainLog, ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 import type { Photo } from "@/lib/media-schemas";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import { SEED_USER, SEED_ASSESSMENT } from "@/lib/personal-seed";
@@ -13,7 +13,7 @@ import { SEED_USER, SEED_ASSESSMENT } from "@/lib/personal-seed";
  */
 
 const DB_NAME = "spinecoach-ai";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 interface SpineCoachDB extends DBSchema {
   users: { key: string; value: User };
@@ -43,6 +43,11 @@ interface SpineCoachDB extends DBSchema {
   benchmarkLogs: {
     key: string;
     value: BenchmarkLog;
+    indexes: { "by-userId": string };
+  };
+  reassessmentLogs: {
+    key: string;
+    value: ReassessmentLog;
     indexes: { "by-userId": string };
   };
   recoveryLogs: { key: string; value: unknown };
@@ -99,6 +104,12 @@ export function getDB(): Promise<IDBPDatabase<SpineCoachDB>> {
             keyPath: "id",
           });
           benchmarkLogs.createIndex("by-userId", "userId");
+        }
+        if (oldVersion < 6) {
+          const reassessmentLogs = db.createObjectStore("reassessmentLogs", {
+            keyPath: "id",
+          });
+          reassessmentLogs.createIndex("by-userId", "userId");
         }
       },
     });
@@ -249,6 +260,31 @@ export async function getBenchmarkLogsForUser(
   return all.sort((a, b) => b.createdAt - a.createdAt);
 }
 
+export async function putReassessmentLog(log: ReassessmentLog): Promise<void> {
+  const db = await getDB();
+  await db.put("reassessmentLogs", log);
+}
+
+/** Reassessment logs for a user, newest first. */
+export async function getReassessmentLogsForUser(
+  userId: string
+): Promise<ReassessmentLog[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex(
+    "reassessmentLogs",
+    "by-userId",
+    userId
+  );
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function getLatestReassessmentForUser(
+  userId: string
+): Promise<ReassessmentLog | undefined> {
+  const all = await getReassessmentLogsForUser(userId);
+  return all[0];
+}
+
 export async function putPhoto(photo: Photo): Promise<void> {
   const db = await getDB();
   await db.put("photos", photo);
@@ -281,6 +317,7 @@ export async function resetUserData(): Promise<void> {
     "workoutLogs",
     "painLogs",
     "benchmarkLogs",
+    "reassessmentLogs",
     "recoveryLogs",
     "photos",
     "medicalRecords",

@@ -63,3 +63,22 @@ export const newBenchmarkLogInputSchema = benchmarkLogSchema.omit({
   createdAt: true,
 });
 export type NewBenchmarkLogInput = z.infer<typeof newBenchmarkLogInputSchema>;
+
+export const reassessmentLogSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  createdAt: z.number(),
+  flexibility: z.number().int().min(1).max(5),
+  balance: z.number().int().min(1).max(5),
+  breathingQuality: z.number().int().min(1).max(5),
+  painAreas: z.string().max(300).optional(),
+});
+export type ReassessmentLog = z.infer<typeof reassessmentLogSchema>;
+
+export const newReassessmentLogInputSchema = reassessmentLogSchema.omit({
+  id: true,
+  createdAt: true,
+});
+export type NewReassessmentLogInput = z.infer<
+  typeof newReassessmentLogInputSchema
+>;

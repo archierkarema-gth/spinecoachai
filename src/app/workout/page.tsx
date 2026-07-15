@@ -24,6 +24,8 @@ const SIDE_LABEL: Record<SideEmphasis, string> = {
   right: "Sisi kanan",
 };
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
 export default function WorkoutPage() {
   const router = useRouter();
   const {
@@ -32,6 +34,7 @@ export default function WorkoutPage() {
     latestAssessment,
     latestCheckIn,
     workoutLogs,
+    latestReassessment,
     user,
     refreshLogs,
   } = useAppStore();
@@ -57,8 +60,20 @@ export default function WorkoutPage() {
       workoutLogs,
       preset: user?.trainingPreset ?? "balanced",
       ownedEquipment: user?.ownedEquipment ?? [],
+      latestReassessment: latestReassessment ?? undefined,
     });
-  }, [latestAssessment, latestCheckIn, exercises, workoutLogs, user]);
+  }, [
+    latestAssessment,
+    latestCheckIn,
+    exercises,
+    workoutLogs,
+    user,
+    latestReassessment,
+  ]);
+
+  const needsReassessment = useMemo(() => {
+    return !latestReassessment || Date.now() - latestReassessment.createdAt >= SEVEN_DAYS_MS;
+  }, [latestReassessment]);
 
   async function finishSession(result: {
     completed: CompletedExercise[];
@@ -158,6 +173,20 @@ export default function WorkoutPage() {
       <TopBar title="Sesi hari ini" subtitle={session.movementFocus} />
 
       <div className="flex flex-col gap-4 px-5 pb-8">
+        {needsReassessment && (
+          <Card className="border-primary/40 bg-primary/5">
+            <p className="text-sm text-foreground">
+              Sudah &ge;7 hari sejak reassessment mingguan terakhir.
+            </p>
+            <Link
+              href="/reassess"
+              className="mt-2 inline-block text-sm font-semibold text-primary"
+            >
+              Isi reassessment mingguan →
+            </Link>
+          </Card>
+        )}
+
         <Card className="bg-primary text-primary-foreground border-transparent">
           <div className="flex items-center justify-between">
             <div>

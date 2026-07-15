@@ -9,12 +9,14 @@ import {
   progressedDuration,
   recentLoad,
   applyLoadSuppression,
+  shouldDeload,
+  applyDeloadCap,
   type EngineInputs,
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import type { Assessment } from "@/lib/schemas";
 import type { CheckIn } from "@/lib/exercise-schemas";
-import type { WorkoutLog } from "@/lib/log-schemas";
+import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 import { exerciseSchema } from "@/lib/exercise-schemas";
 
 const noRedFlags = {
@@ -153,6 +155,64 @@ describe("deriveGoalWeights", () => {
     });
     expect(w.pain).toBeGreaterThan(0);
     expect(w.mobility).toBeGreaterThan(0);
+  });
+
+  it("is unaffected when no reassessment is passed (backward compatible)", () => {
+    const withoutArg = deriveGoalWeights(baseAssessment);
+    const withUndefined = deriveGoalWeights(baseAssessment, undefined);
+    expect(withoutArg).toEqual(withUndefined);
+  });
+
+  it("bumps mobility when flexibility is low", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withLowFlex = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 2,
+      balance: 4,
+      breathingQuality: 4,
+    });
+    expect(withLowFlex.mobility).toBeGreaterThan(base.mobility);
+  });
+
+  it("bumps posture when balance is low", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withLowBalance = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 4,
+      balance: 1,
+      breathingQuality: 4,
+    });
+    expect(withLowBalance.posture).toBeGreaterThan(base.posture);
+  });
+
+  it("bumps posture when breathing quality is low", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withLowBreath = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 4,
+      balance: 4,
+      breathingQuality: 2,
+    });
+    expect(withLowBreath.posture).toBeGreaterThan(base.posture);
+  });
+
+  it("does not bump anything when all reassessment scores are healthy", () => {
+    const base = deriveGoalWeights(baseAssessment);
+    const withHealthy = deriveGoalWeights(baseAssessment, {
+      id: "r1",
+      userId: "u1",
+      createdAt: 0,
+      flexibility: 4,
+      balance: 4,
+      breathingQuality: 4,
+    });
+    expect(withHealthy).toEqual(base);
   });
 });
 
@@ -735,6 +795,111 @@ describe("applyLoadSuppression", () => {
   });
 });
 
+describe("shouldDeload", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = 28 * DAY; // fixed reference so week windows land on clean boundaries
+
+  function heavyLog(daysAgo: number, intensity: string): WorkoutLog {
+    return {
+      id: `w-${daysAgo}`,
+      userId: "u1",
+      createdAt: now - daysAgo * DAY,
+      movementFocus: "x",
+      intensity,
+      estimatedMinutes: 30,
+      exercises: [{ exerciseId: "e1", name: "e1", domain: "core", completed: true }],
+      postSessionPain: 1,
+    };
+  }
+
+  it("returns true when all 4 weeks average moderate or above", () => {
+    const logs = [1, 8, 15, 22].map((d) => heavyLog(d, "full"));
+    expect(shouldDeload(logs, now)).toBe(true);
+  });
+
+  it("returns false when one of the 4 weeks dips below moderate", () => {
+    const logs = [heavyLog(1, "full"), heavyLog(8, "light"), heavyLog(15, "full"), heavyLog(22, "full")];
+    expect(shouldDeload(logs, now)).toBe(false);
+  });
+
+  it("returns false when a week window has no sessions at all", () => {
+    const logs = [heavyLog(1, "full"), heavyLog(15, "full"), heavyLog(22, "full")];
+    expect(shouldDeload(logs, now)).toBe(false);
+  });
+
+  it("returns false with fewer than 28 days of history", () => {
+    const logs = [heavyLog(1, "full"), heavyLog(8, "full")];
+    expect(shouldDeload(logs, now)).toBe(false);
+  });
+
+  it("returns false with no logs", () => {
+    expect(shouldDeload([], now)).toBe(false);
+  });
+
+  it("treats a log exactly on a window's start boundary as inside that window (inclusive)", () => {
+    // now = 28*DAY. Window i=0 is [21*DAY, 28*DAY) i.e. daysAgo in (0,7].
+    // daysAgo=7 -> createdAt = 21*DAY, exactly windowStart of window i=0.
+    // Window i=0 has ONLY this boundary log; if it were (wrongly) excluded,
+    // window i=0 would be empty and shouldDeload would return false.
+    const logs = [
+      heavyLog(7, "full"), // boundary log — must land in window i=0
+      heavyLog(9, "full"),
+      heavyLog(11, "full"),
+      heavyLog(13, "full"), // window i=1
+      heavyLog(16, "full"),
+      heavyLog(18, "full"),
+      heavyLog(20, "full"), // window i=2
+      heavyLog(23, "full"),
+      heavyLog(25, "full"),
+      heavyLog(27, "full"), // window i=3
+    ];
+    expect(shouldDeload(logs, now)).toBe(true);
+  });
+
+  it("excludes a log exactly on a window's end boundary from that window (exclusive)", () => {
+    // daysAgo=14 -> createdAt = 14*DAY, exactly windowEnd of window i=2 AND
+    // windowStart of window i=1. Window i=1 has ONLY this boundary log; if it
+    // were (wrongly) counted into window i=2 instead, window i=1 would be
+    // empty and shouldDeload would return false.
+    const logs = [
+      heavyLog(1, "full"),
+      heavyLog(3, "full"),
+      heavyLog(5, "full"), // window i=0
+      heavyLog(14, "full"), // boundary log — must land in window i=1, not i=2
+      heavyLog(16, "full"),
+      heavyLog(18, "full"),
+      heavyLog(20, "full"), // window i=2
+      heavyLog(23, "full"),
+      heavyLog(25, "full"),
+      heavyLog(27, "full"), // window i=3
+    ];
+    expect(shouldDeload(logs, now)).toBe(true);
+  });
+});
+
+describe("applyDeloadCap", () => {
+  it("caps full to light during a deload week", () => {
+    expect(applyDeloadCap("full", true)).toBe("light");
+  });
+
+  it("caps moderate to light during a deload week", () => {
+    expect(applyDeloadCap("moderate", true)).toBe("light");
+  });
+
+  it("leaves light unchanged during a deload week", () => {
+    expect(applyDeloadCap("light", true)).toBe("light");
+  });
+
+  it("leaves recovery unchanged during a deload week", () => {
+    expect(applyDeloadCap("recovery", true)).toBe("recovery");
+  });
+
+  it("leaves intensity unchanged when not a deload week", () => {
+    expect(applyDeloadCap("full", false)).toBe("full");
+    expect(applyDeloadCap("moderate", false)).toBe("moderate");
+  });
+});
+
 describe("generateSession — M10 recovery load", () => {
   const H = 60 * 60 * 1000;
   const nowTs = 1_000_000; // checkIn().createdAt default
@@ -771,6 +936,86 @@ describe("generateSession — M10 recovery load", () => {
     );
     expect(s.intensity).toBe("full");
     expect(s.reasoning.some((r) => r.includes("Beban 2 hari terakhir"))).toBe(false);
+  });
+});
+
+describe("generateSession — M13 deload", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it("caps a full-readiness day to light when 4 weeks were consistently heavy", () => {
+    const now = 1_000_000_000;
+    const heavyLogs: WorkoutLog[] = [1, 8, 15, 22].map((d) => ({
+      id: `w-${d}`,
+      userId: "u1",
+      createdAt: now - d * DAY,
+      movementFocus: "x",
+      intensity: "full",
+      estimatedMinutes: 30,
+      exercises: [{ exerciseId: "e1", name: "e1", domain: "core", completed: true }],
+      postSessionPain: 1,
+    }));
+    const result = generateSession(
+      inputs({
+        checkIn: checkIn({
+          createdAt: now,
+          painLevel: 1,
+          recovery: 5,
+          energyLevel: 5,
+          sleepQuality: 5,
+        }),
+        workoutLogs: heavyLogs,
+      })
+    );
+    expect(result.intensity).toBe("light");
+    expect(
+      result.reasoning.some((r) => r.includes("deload"))
+    ).toBe(true);
+  });
+
+  it("does not deload without 4 consistent weeks of history", () => {
+    const now = 1_000_000_000;
+    const result = generateSession(
+      inputs({
+        checkIn: checkIn({
+          createdAt: now,
+          painLevel: 1,
+          recovery: 5,
+          energyLevel: 5,
+          sleepQuality: 5,
+        }),
+        workoutLogs: [],
+      })
+    );
+    expect(result.intensity).toBe("full");
+    expect(result.reasoning.some((r) => r.includes("deload"))).toBe(false);
+  });
+
+  it("is a deload week but does not note it when high pain already forces recovery", () => {
+    const now = 1_000_000_000;
+    const heavyLogs: WorkoutLog[] = [1, 8, 15, 22].map((d) => ({
+      id: `w-${d}`,
+      userId: "u1",
+      createdAt: now - d * DAY,
+      movementFocus: "x",
+      intensity: "full",
+      estimatedMinutes: 30,
+      exercises: [{ exerciseId: "e1", name: "e1", domain: "core", completed: true }],
+      postSessionPain: 1,
+    }));
+    const result = generateSession(
+      inputs({
+        checkIn: checkIn({
+          createdAt: now,
+          painLevel: 8,
+          recovery: 5,
+          energyLevel: 5,
+          sleepQuality: 5,
+        }),
+        workoutLogs: heavyLogs,
+      })
+    );
+    expect(result.intensity).toBe("recovery");
+    expect(result.reasoning.some((r) => r.includes("deload"))).toBe(false);
   });
 });
 

@@ -90,6 +90,16 @@ tetap murni dari `activityLevel` + `workoutLogs` seperti sekarang.
 - Tidak ada UI riwayat/tren reassessment di Progress page (data sudah
   tersimpan untuk dipakai nanti).
 - Tidak ada validasi/blocking kalau user tidak pernah reassess.
+- **`flexibility → mobility` modifier tidak mengubah sesi yang dihasilkan.**
+  `weights.mobility` sudah informational-only di `generateSession`
+  (pre-existing dari sebelum M13 — tidak ada domain yang membaca weight ini
+  buat boost slot, beda dari `weights.posture` yang genuinely gate slot
+  stability/breathing). Modifier tetap dihitung & tersimpan (data siap kalau
+  `weights.mobility` diaktifkan nanti), tapi user tidak akan lihat efek nyata
+  dari skor flexibility rendah di sesi hari itu. Ditemukan saat final review;
+  didokumentasikan di sini alih-alih wiring `weights.mobility` ke
+  `slotMaxFor`/`boosted` — itu perubahan ke pure function yang dipakai luas
+  di luar scope M13, ditunda ke milestone lain kalau mau diaktifkan.
 
 ## Bagian B — Deload Berkala
 
