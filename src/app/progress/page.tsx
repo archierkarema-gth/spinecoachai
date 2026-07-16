@@ -17,6 +17,7 @@ import {
   latestBenchmark,
   personalBest,
   benchmarkTrend,
+  weeklyVolumeByDomain,
 } from "@/lib/progress";
 import type { PainLog, BenchmarkLog } from "@/lib/log-schemas";
 
@@ -26,6 +27,17 @@ function formatDate(ts: number): string {
     month: "short",
   });
 }
+
+const DOMAIN_LABELS: Record<string, string> = {
+  breathing: "Napas",
+  mobility: "Mobilitas",
+  stability: "Stabilitas",
+  core: "Core",
+  balance: "Keseimbangan",
+  strength: "Kekuatan",
+  conditioning: "Kondisi",
+  recovery: "Pendinginan",
+};
 
 export default function ProgressPage() {
   const { hydrated, hydrate, user, workoutLogs, benchmarkLogs, refreshBenchmarks } = useAppStore();
@@ -45,6 +57,10 @@ export default function ProgressPage() {
   const streak = useMemo(() => computeStreak(workoutLogs), [workoutLogs]);
   const week = useMemo(
     () => sessionsInLastDays(workoutLogs, 7),
+    [workoutLogs]
+  );
+  const volumeByDomain = useMemo(
+    () => weeklyVolumeByDomain(workoutLogs),
     [workoutLogs]
   );
   const trend = useMemo(
@@ -119,6 +135,23 @@ export default function ProgressPage() {
               Terakhir: {trend[trend.length - 1].painLevel}/10
             </p>
           )}
+        </Card>
+
+        <Card>
+          <CardTitle>Volume 7 hari per domain</CardTitle>
+          <div className="mt-2 flex flex-col gap-1">
+            {Object.entries(volumeByDomain).map(([domain, minutes]) => (
+              <div
+                key={domain}
+                className="flex items-center justify-between text-sm text-foreground"
+              >
+                <span>{DOMAIN_LABELS[domain] ?? domain}</span>
+                <span className="tabular text-muted-foreground">
+                  {Math.round(minutes)} mnt
+                </span>
+              </div>
+            ))}
+          </div>
         </Card>
 
         <Card>
