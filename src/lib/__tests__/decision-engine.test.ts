@@ -1120,3 +1120,37 @@ describe("M11 dip equipment gating", () => {
   });
 });
 
+describe("generateSession — M14 muscle & breathing preferences", () => {
+  it("adds a reasoning line when breathingPattern is chest-dominant", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, breathingPattern: "chest-dominant" },
+      })
+    );
+    expect(
+      result.reasoning.some((line) => line.toLowerCase().includes("napas"))
+    ).toBe(true);
+  });
+
+  it("does not add a breathing reasoning line when breathingPattern is diaphragmatic", () => {
+    const chestResult = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "chest-dominant" } })
+    );
+    const diaphragmaticResult = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "diaphragmatic" } })
+    );
+    expect(diaphragmaticResult.reasoning.length).toBeLessThan(
+      chestResult.reasoning.length
+    );
+  });
+
+  it("does not change goal weights when breathingPattern is set (no duplication of M13 breathingQuality logic)", () => {
+    const withPattern = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "chest-dominant" } })
+    );
+    const withoutPattern = generateSession(inputs({ assessment: baseAssessment }));
+    // Same intensity/blocks structure driven by weights — same number of blocks.
+    expect(withPattern.blocks.length).toBe(withoutPattern.blocks.length);
+  });
+});
+

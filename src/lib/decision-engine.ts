@@ -488,6 +488,14 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
       "Beban latihan konsisten tinggi 4 minggu terakhir — minggu ini deload, turunkan volume buat recovery."
     );
   }
+  if (
+    assessment.breathingPattern === "chest-dominant" ||
+    assessment.breathingPattern === "shallow"
+  ) {
+    reasoning.push(
+      "Pola napasmu cenderung dada/dangkal — sesi ini tetap mengutamakan latihan napas diafragma."
+    );
+  }
 
   // 3. Weekly plan (light touch): if trained in the last ~20h, ease off one step.
   const lastSession = inputs.recentSessionTimestamps[0];
@@ -507,6 +515,8 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const floorRank = Math.min(capability.floorRank, ceilingRank);
   const preferHardest = capability.floorRank >= 2;
   const weights = deriveGoalWeights(assessment, inputs.latestReassessment);
+  const weakMusclePref = new Set(assessment.weakMuscles ?? []);
+  const tightMusclePref = new Set(assessment.tightMuscles ?? []);
   const allowedEquipment = new Set(inputs.ownedEquipment ?? []);
   const preset = inputs.preset ?? "balanced";
 
@@ -537,10 +547,14 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
       intensity === "recovery"
         ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max, {
             allowedEquipment,
+            preferMuscles: weakMusclePref,
+            preferMusclesInMobility: tightMusclePref,
           })
         : pickForDomain(exercises, step.domain, effectiveFloor, ceilingRank, max, {
             preferHardest: effectivePreferHardest,
             allowedEquipment,
+            preferMuscles: weakMusclePref,
+            preferMusclesInMobility: tightMusclePref,
           });
     // M9 overload: lengthen holds a move has earned (recovery ignores duration).
     let transformed: Exercise[];
