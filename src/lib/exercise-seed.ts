@@ -13,6 +13,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-diaphragmatic-breathing",
     name: "Diaphragmatic Breathing",
+    muscles: ["core"],
     domain: "breathing",
     difficulty: "beginner",
     durationSeconds: 120,
@@ -27,6 +28,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-90-90-breathing",
     name: "90/90 Breathing",
+    muscles: ["core"],
     domain: "breathing",
     difficulty: "intermediate",
     durationSeconds: 150,
@@ -41,6 +43,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-cat-cow",
     name: "Cat-Cow",
+    muscles: ["upper-back"],
     domain: "mobility",
     difficulty: "beginner",
     durationSeconds: 90,
@@ -55,6 +58,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-thread-the-needle",
     name: "Thread the Needle",
+    muscles: ["upper-back"],
     domain: "mobility",
     difficulty: "intermediate",
     durationSeconds: 90,
@@ -69,6 +73,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-dead-bug",
     name: "Dead Bug",
+    muscles: ["core"],
     domain: "core",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -83,6 +88,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-bird-dog",
     name: "Bird Dog",
+    muscles: ["core", "glute"],
     domain: "core",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -97,6 +103,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-left",
     name: "Side Plank (Kiri)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -111,6 +118,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-knees-left",
     name: "Side Plank Lutut (Kiri)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 40,
@@ -125,6 +133,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-right",
     name: "Side Plank (Kanan)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -139,6 +148,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-knees-right",
     name: "Side Plank Lutut (Kanan)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 40,
@@ -153,6 +163,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-stance",
     name: "Single-Leg Stance",
+    muscles: ["glute", "core"],
     domain: "balance",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -167,6 +178,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-reach",
     name: "Single-Leg Reach",
+    muscles: ["glute", "core"],
     domain: "balance",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -181,6 +193,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-glute-bridge",
     name: "Glute Bridge",
+    muscles: ["glute"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -195,6 +208,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-bridge",
     name: "Single-Leg Glute Bridge",
+    muscles: ["glute"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -209,6 +223,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-wall-sit",
     name: "Wall Sit",
+    muscles: ["quad", "glute"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -223,6 +238,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-marching-in-place",
     name: "Marching in Place",
+    muscles: ["quad", "calf"],
     domain: "conditioning",
     difficulty: "beginner",
     durationSeconds: 120,
@@ -237,6 +253,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-child-pose",
     name: "Child's Pose",
+    muscles: ["lower-back"],
     domain: "recovery",
     difficulty: "beginner",
     durationSeconds: 90,
@@ -251,6 +268,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-supine-twist",
     name: "Supine Twist",
+    muscles: ["lower-back"],
     domain: "recovery",
     difficulty: "beginner",
     durationSeconds: 90,
@@ -266,6 +284,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-wall-pushup",
     name: "Wall Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -280,6 +299,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-incline-pushup",
     name: "Incline Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -294,6 +314,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-knee-pushup",
     name: "Knee Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 45,
@@ -308,6 +329,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-full-pushup",
     name: "Full Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -322,6 +344,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-split-squat",
     name: "Split Squat",
+    muscles: ["quad", "glute"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -336,6 +359,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-reverse-lunge",
     name: "Reverse Lunge",
+    muscles: ["quad", "glute"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -350,6 +374,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-calf-raise",
     name: "Calf Raise",
+    muscles: ["calf"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -365,6 +390,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-wall-angel",
     name: "Wall Angel",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -379,6 +405,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-prone-ytw",
     name: "Prone Y-T-W Raises",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -393,6 +420,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-chin-tuck",
     name: "Chin Tuck",
+    muscles: ["neck", "upper-back"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -407,6 +435,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-prone-press-up",
     name: "Prone Press-up",
+    muscles: ["lower-back"],
     domain: "mobility",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -422,6 +451,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-front-plank-knees",
     name: "Front Plank Lutut",
+    muscles: ["core"],
     domain: "core",
     difficulty: "beginner",
     durationSeconds: 40,
@@ -436,6 +466,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-front-plank",
     name: "Front Plank",
+    muscles: ["core"],
     domain: "core",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -450,6 +481,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-hollow-hold",
     name: "Hollow-Body Hold",
+    muscles: ["core"],
     domain: "core",
     difficulty: "advanced",
     durationSeconds: 40,
@@ -465,6 +497,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-dead-hang",
     name: "Dead Hang",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 30,
@@ -479,6 +512,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-scapular-pull",
     name: "Scapular Pull",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -493,6 +527,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-negative-pullup",
     name: "Negative Pull-up",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -507,6 +542,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-full-pullup",
     name: "Full Pull-up",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -522,6 +558,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-clamshell-raise",
     name: "Clamshell Raise",
+    muscles: ["glute"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -536,6 +573,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-glute-bridge-march",
     name: "Glute Bridge March",
+    muscles: ["glute", "core"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 50,
@@ -550,6 +588,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-standing-hip-hinge",
     name: "Standing Hip Hinge",
+    muscles: ["hamstring", "glute"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 50,
@@ -565,6 +604,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-scapular-wall-slide",
     name: "Scapular Wall Slide",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -579,6 +619,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-prone-t-raise",
     name: "Prone T Raise",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -593,6 +634,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-scapular-pushup",
     name: "Scapular Push-up",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -608,6 +650,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-dip-support-hold",
     name: "Dip Support Hold",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 30,
@@ -622,6 +665,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-negative-dip",
     name: "Negative Dip",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -636,6 +680,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-full-dip",
     name: "Full Dip",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -651,6 +696,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-tandem-stance",
     name: "Tandem Stance",
+    muscles: ["glute", "core"],
     domain: "balance",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -665,6 +711,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-rdl",
     name: "Single-Leg RDL",
+    muscles: ["hamstring", "glute"],
     domain: "balance",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -679,6 +726,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-squat-box",
     name: "Single-Leg Squat ke Kursi",
+    muscles: ["quad", "glute"],
     domain: "balance",
     difficulty: "advanced",
     durationSeconds: 60,

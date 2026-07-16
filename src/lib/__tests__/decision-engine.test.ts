@@ -85,6 +85,15 @@ describe("exerciseSchema muscles field", () => {
   });
 });
 
+describe("EXERCISE_SEED muscle tags", () => {
+  it("tags every exercise with 1-3 primary muscle groups", () => {
+    for (const ex of EXERCISE_SEED) {
+      expect(ex.muscles.length).toBeGreaterThanOrEqual(1);
+      expect(ex.muscles.length).toBeLessThanOrEqual(3);
+    }
+  });
+});
+
 describe("decideIntensity", () => {
   it("returns recovery when pain is high", () => {
     expect(decideIntensity(checkIn({ painLevel: 8 }))).toBe("recovery");
