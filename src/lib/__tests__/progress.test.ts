@@ -162,4 +162,25 @@ describe("weeklyVolumeByDomain", () => {
     expect(result.core).toBe(10);
     expect(result.strength).toBe(10);
   });
+
+  it("stores the exact fractional split for a non-integer division (rounding happens only in the display layer)", () => {
+    const now = Date.now();
+    const log: WorkoutLog = {
+      id: "3",
+      userId: "u1",
+      createdAt: now,
+      movementFocus: "test",
+      intensity: "moderate",
+      estimatedMinutes: 20,
+      exercises: [
+        { exerciseId: "e1", name: "Ex1", domain: "core", completed: true },
+        { exerciseId: "e2", name: "Ex2", domain: "strength", completed: true },
+        { exerciseId: "e3", name: "Ex3", domain: "mobility", completed: true },
+      ],
+    };
+    const result = weeklyVolumeByDomain([log], now);
+    expect(result.core).toBeCloseTo(20 / 3);
+    expect(result.strength).toBeCloseTo(20 / 3);
+    expect(result.mobility).toBeCloseTo(20 / 3);
+  });
 });

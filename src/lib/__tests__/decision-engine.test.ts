@@ -15,7 +15,7 @@ import {
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import type { Assessment } from "@/lib/schemas";
-import type { CheckIn } from "@/lib/exercise-schemas";
+import type { CheckIn, MuscleGroup } from "@/lib/exercise-schemas";
 import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 import { exerciseSchema } from "@/lib/exercise-schemas";
 
@@ -341,14 +341,14 @@ describe("pickForDomain", () => {
       id: "core-a",
       domain: "core" as const,
       difficulty: "beginner" as const,
-      muscles: ["core"] as const,
+      muscles: ["core"] as MuscleGroup[],
     };
     const b = {
       ...EXERCISE_SEED[0],
       id: "core-b",
       domain: "core" as const,
       difficulty: "beginner" as const,
-      muscles: ["glute"] as const,
+      muscles: ["glute"] as MuscleGroup[],
     };
     const picks = pickForDomain([a, b], "core", 1, 3, 1, {
       preferMuscles: new Set(["glute"]),
@@ -362,14 +362,14 @@ describe("pickForDomain", () => {
       id: "strength-a",
       domain: "strength" as const,
       difficulty: "beginner" as const,
-      muscles: ["core"] as const,
+      muscles: ["core"] as MuscleGroup[],
     };
     const b = {
       ...EXERCISE_SEED[0],
       id: "strength-b",
       domain: "strength" as const,
       difficulty: "beginner" as const,
-      muscles: ["hip-flexor"] as const,
+      muscles: ["hip-flexor"] as MuscleGroup[],
     };
     const picks = pickForDomain([a, b], "strength", 1, 3, 1, {
       preferMusclesInMobility: new Set(["hip-flexor"]),
