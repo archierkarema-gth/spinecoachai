@@ -15,7 +15,7 @@ import {
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import type { Assessment } from "@/lib/schemas";
-import type { CheckIn } from "@/lib/exercise-schemas";
+import type { CheckIn, MuscleGroup } from "@/lib/exercise-schemas";
 import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 import { exerciseSchema } from "@/lib/exercise-schemas";
 
@@ -62,6 +62,37 @@ function inputs(overrides: Partial<EngineInputs> = {}): EngineInputs {
     ...overrides,
   };
 }
+
+describe("exerciseSchema muscles field", () => {
+  it("defaults muscles to an empty array when omitted", () => {
+    const { muscles, ...rest } = EXERCISE_SEED[0];
+    const parsed = exerciseSchema.parse(rest);
+    expect(parsed.muscles).toEqual([]);
+  });
+
+  it("accepts a list of known muscle groups", () => {
+    const parsed = exerciseSchema.parse({
+      ...EXERCISE_SEED[0],
+      muscles: ["glute", "hamstring"],
+    });
+    expect(parsed.muscles).toEqual(["glute", "hamstring"]);
+  });
+
+  it("rejects an unknown muscle group", () => {
+    expect(() =>
+      exerciseSchema.parse({ ...EXERCISE_SEED[0], muscles: ["bicep"] })
+    ).toThrow();
+  });
+});
+
+describe("EXERCISE_SEED muscle tags", () => {
+  it("tags every exercise with 1-3 primary muscle groups", () => {
+    for (const ex of EXERCISE_SEED) {
+      expect(ex.muscles.length).toBeGreaterThanOrEqual(1);
+      expect(ex.muscles.length).toBeLessThanOrEqual(3);
+    }
+  });
+});
 
 describe("decideIntensity", () => {
   it("returns recovery when pain is high", () => {
@@ -302,6 +333,48 @@ describe("pickForDomain", () => {
       rank[easiestFirst[0].difficulty]
     );
     expect(hardestFirst[0].difficulty).toBe("advanced");
+  });
+
+  it("surfaces a preferMuscles-overlapping exercise first among same-difficulty candidates", () => {
+    const a = {
+      ...EXERCISE_SEED[0],
+      id: "core-a",
+      domain: "core" as const,
+      difficulty: "beginner" as const,
+      muscles: ["core"] as MuscleGroup[],
+    };
+    const b = {
+      ...EXERCISE_SEED[0],
+      id: "core-b",
+      domain: "core" as const,
+      difficulty: "beginner" as const,
+      muscles: ["glute"] as MuscleGroup[],
+    };
+    const picks = pickForDomain([a, b], "core", 1, 3, 1, {
+      preferMuscles: new Set(["glute"]),
+    });
+    expect(picks[0].id).toBe("core-b");
+  });
+
+  it("does not apply preferMusclesInMobility outside the mobility domain", () => {
+    const a = {
+      ...EXERCISE_SEED[0],
+      id: "strength-a",
+      domain: "strength" as const,
+      difficulty: "beginner" as const,
+      muscles: ["core"] as MuscleGroup[],
+    };
+    const b = {
+      ...EXERCISE_SEED[0],
+      id: "strength-b",
+      domain: "strength" as const,
+      difficulty: "beginner" as const,
+      muscles: ["hip-flexor"] as MuscleGroup[],
+    };
+    const picks = pickForDomain([a, b], "strength", 1, 3, 1, {
+      preferMusclesInMobility: new Set(["hip-flexor"]),
+    });
+    expect(picks[0].id).toBe("strength-a"); // original order, no bias applied
   });
 });
 
@@ -1044,6 +1117,40 @@ describe("M11 dip equipment gating", () => {
       { allowedEquipment: new Set(["dip bars"]) }
     );
     expect(picks.some((e) => e.equipment.includes("dip bars"))).toBe(true);
+  });
+});
+
+describe("generateSession — M14 muscle & breathing preferences", () => {
+  it("adds a reasoning line when breathingPattern is chest-dominant", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, breathingPattern: "chest-dominant" },
+      })
+    );
+    expect(
+      result.reasoning.some((line) => line.toLowerCase().includes("napas"))
+    ).toBe(true);
+  });
+
+  it("does not add a breathing reasoning line when breathingPattern is diaphragmatic", () => {
+    const chestResult = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "chest-dominant" } })
+    );
+    const diaphragmaticResult = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "diaphragmatic" } })
+    );
+    expect(diaphragmaticResult.reasoning.length).toBeLessThan(
+      chestResult.reasoning.length
+    );
+  });
+
+  it("does not change goal weights when breathingPattern is set (no duplication of M13 breathingQuality logic)", () => {
+    const withPattern = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "chest-dominant" } })
+    );
+    const withoutPattern = generateSession(inputs({ assessment: baseAssessment }));
+    // Same intensity/blocks structure driven by weights — same number of blocks.
+    expect(withPattern.blocks.length).toBe(withoutPattern.blocks.length);
   });
 });
 

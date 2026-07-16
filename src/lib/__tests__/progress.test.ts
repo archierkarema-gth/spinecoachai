@@ -3,6 +3,7 @@ import {
   computeStreak,
   sessionsInLastDays,
   painTrend,
+  weeklyVolumeByDomain,
 } from "@/lib/progress";
 import type { WorkoutLog, PainLog } from "@/lib/log-schemas";
 
@@ -116,5 +117,70 @@ describe("benchmarkTrend", () => {
       { createdAt: 2000, value: 40 },
       { createdAt: 3000, value: 50 },
     ]);
+  });
+});
+
+describe("weeklyVolumeByDomain", () => {
+  it("returns 0 for every domain when there are no logs", () => {
+    const result = weeklyVolumeByDomain([], Date.now());
+    expect(result.core).toBe(0);
+    expect(result.strength).toBe(0);
+  });
+
+  it("excludes logs older than 7 days", () => {
+    const now = Date.now();
+    const oldLog: WorkoutLog = {
+      id: "1",
+      userId: "u1",
+      createdAt: now - 8 * 24 * 60 * 60 * 1000,
+      movementFocus: "test",
+      intensity: "moderate",
+      estimatedMinutes: 20,
+      exercises: [
+        { exerciseId: "e1", name: "Ex1", domain: "core", completed: true },
+      ],
+    };
+    const result = weeklyVolumeByDomain([oldLog], now);
+    expect(result.core).toBe(0);
+  });
+
+  it("splits estimatedMinutes evenly across a log's domains", () => {
+    const now = Date.now();
+    const log: WorkoutLog = {
+      id: "2",
+      userId: "u1",
+      createdAt: now,
+      movementFocus: "test",
+      intensity: "moderate",
+      estimatedMinutes: 20,
+      exercises: [
+        { exerciseId: "e1", name: "Ex1", domain: "core", completed: true },
+        { exerciseId: "e2", name: "Ex2", domain: "strength", completed: true },
+      ],
+    };
+    const result = weeklyVolumeByDomain([log], now);
+    expect(result.core).toBe(10);
+    expect(result.strength).toBe(10);
+  });
+
+  it("stores the exact fractional split for a non-integer division (rounding happens only in the display layer)", () => {
+    const now = Date.now();
+    const log: WorkoutLog = {
+      id: "3",
+      userId: "u1",
+      createdAt: now,
+      movementFocus: "test",
+      intensity: "moderate",
+      estimatedMinutes: 20,
+      exercises: [
+        { exerciseId: "e1", name: "Ex1", domain: "core", completed: true },
+        { exerciseId: "e2", name: "Ex2", domain: "strength", completed: true },
+        { exerciseId: "e3", name: "Ex3", domain: "mobility", completed: true },
+      ],
+    };
+    const result = weeklyVolumeByDomain([log], now);
+    expect(result.core).toBeCloseTo(20 / 3);
+    expect(result.strength).toBeCloseTo(20 / 3);
+    expect(result.mobility).toBeCloseTo(20 / 3);
   });
 });

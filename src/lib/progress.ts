@@ -4,6 +4,7 @@ import type {
   PainLog,
   WorkoutLog,
 } from "@/lib/log-schemas";
+import type { ExerciseDomain } from "@/lib/exercise-schemas";
 
 /**
  * Pure progress calculations for the Progress dashboard. No storage or UI —
@@ -108,4 +109,41 @@ export function benchmarkTrend(
     .filter((l) => l.type === type)
     .map((l) => ({ createdAt: l.createdAt, value: l.value }))
     .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+const ALL_DOMAINS: ExerciseDomain[] = [
+  "breathing",
+  "mobility",
+  "stability",
+  "core",
+  "balance",
+  "strength",
+  "conditioning",
+  "recovery",
+];
+
+/**
+ * Minutes of training per domain over the last 7 days, from workoutLogs.
+ * A log's estimatedMinutes is split evenly across the domains it touched
+ * (logs don't record per-exercise duration) — display-only signal for the
+ * Progress page (M14 P3-lite); never consumed by generateSession.
+ */
+export function weeklyVolumeByDomain(
+  logs: WorkoutLog[],
+  now: number = Date.now()
+): Record<ExerciseDomain, number> {
+  const result = Object.fromEntries(
+    ALL_DOMAINS.map((d) => [d, 0])
+  ) as Record<ExerciseDomain, number>;
+  const cutoff = now - 7 * DAY_MS;
+  for (const log of logs) {
+    if (log.createdAt < cutoff) continue;
+    const domains = [...new Set(log.exercises.map((e) => e.domain))];
+    if (domains.length === 0) continue;
+    const perDomain = log.estimatedMinutes / domains.length;
+    for (const d of domains) {
+      result[d] += perDomain;
+    }
+  }
+  return result;
 }

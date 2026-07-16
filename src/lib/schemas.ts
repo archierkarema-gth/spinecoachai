@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { muscleGroupEnum, type MuscleGroup } from "@/lib/exercise-schemas";
 
 /**
  * Zod schemas for the SpineCoach AI data model (docs/08_Data_Model.md).
@@ -34,6 +35,14 @@ export function hasRedFlag(flags: RedFlagSymptoms): boolean {
 export const trainingPresetEnum = z.enum(["balanced", "muscle-priority"]);
 export type TrainingPreset = z.infer<typeof trainingPresetEnum>;
 
+export const breathingPatternEnum = z.enum([
+  "chest-dominant",
+  "diaphragmatic",
+  "shallow",
+  "not-sure",
+]);
+export type BreathingPattern = z.infer<typeof breathingPatternEnum>;
+
 export const userSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Nama wajib diisi"),
@@ -65,6 +74,12 @@ export const assessmentSchema = z.object({
   activityLevel: activityLevelEnum,
   availableMinutesPerDay: z.number().int().min(5).max(180),
   primaryGoals: z.string().min(1, "Tulis minimal satu tujuan").max(500),
+
+  // Preferences, not clinical curve data (docs/04). Optional — no default,
+  // undefined means "not yet answered", distinct from an empty array.
+  weakMuscles: z.array(muscleGroupEnum).optional(),
+  tightMuscles: z.array(muscleGroupEnum).optional(),
+  breathingPattern: breathingPatternEnum.optional(),
 
   redFlags: redFlagSymptomsSchema,
 });

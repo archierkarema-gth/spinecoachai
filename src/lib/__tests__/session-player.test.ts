@@ -11,6 +11,7 @@ function ex(id: string, side: Exercise["sideEmphasis"], seconds = 60): Exercise 
     difficulty: "beginner",
     durationSeconds: seconds,
     equipment: [],
+    muscles: [],
     sideEmphasis: side,
     cues: [],
     contraindications: [],

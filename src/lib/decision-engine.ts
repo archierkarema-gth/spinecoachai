@@ -4,6 +4,7 @@ import type {
   CheckIn,
   Exercise,
   ExerciseDomain,
+  MuscleGroup,
 } from "@/lib/exercise-schemas";
 import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 
@@ -360,6 +361,10 @@ export interface PickOptions {
   preferHardest?: boolean;
   /** Equipment the user owns; bodyweight (empty) is always allowed. */
   allowedEquipment?: Set<string>;
+  /** M14: muscle groups from assessment.weakMuscles — biases ordering in every domain. */
+  preferMuscles?: Set<MuscleGroup>;
+  /** M14: muscle groups from assessment.tightMuscles — biases ordering in the mobility domain only. */
+  preferMusclesInMobility?: Set<MuscleGroup>;
 }
 
 export function pickForDomain(
@@ -388,9 +393,20 @@ export function pickForDomain(
       : eligible.filter((ex) => DIFFICULTY_RANK[ex.difficulty] <= ceilingRank);
 
   const dir = opts.preferHardest ? -1 : 1;
-  const byPreference = [...pool].sort(
-    (a, b) => dir * (DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty])
-  );
+  const preferSet = new Set([
+    ...(opts.preferMuscles ?? []),
+    ...(domain === "mobility" ? opts.preferMusclesInMobility ?? [] : []),
+  ]);
+  const overlapsPreferred = (ex: Exercise) =>
+    preferSet.size > 0 && ex.muscles.some((m) => preferSet.has(m));
+  const byPreference = [...pool].sort((a, b) => {
+    const rankDiff = dir * (DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty]);
+    if (rankDiff !== 0) return rankDiff;
+    // Same difficulty rank: muscle-preference overlap breaks the tie.
+    const aPref = overlapsPreferred(a) ? 1 : 0;
+    const bPref = overlapsPreferred(b) ? 1 : 0;
+    return bPref - aPref;
+  });
 
   const lefts = byPreference.filter((e) => e.sideEmphasis === "left");
   const rights = byPreference.filter((e) => e.sideEmphasis === "right");
@@ -472,6 +488,14 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
       "Beban latihan konsisten tinggi 4 minggu terakhir — minggu ini deload, turunkan volume buat recovery."
     );
   }
+  if (
+    assessment.breathingPattern === "chest-dominant" ||
+    assessment.breathingPattern === "shallow"
+  ) {
+    reasoning.push(
+      "Pola napasmu cenderung dada/dangkal — sesi ini tetap mengutamakan latihan napas diafragma."
+    );
+  }
 
   // 3. Weekly plan (light touch): if trained in the last ~20h, ease off one step.
   const lastSession = inputs.recentSessionTimestamps[0];
@@ -491,6 +515,8 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const floorRank = Math.min(capability.floorRank, ceilingRank);
   const preferHardest = capability.floorRank >= 2;
   const weights = deriveGoalWeights(assessment, inputs.latestReassessment);
+  const weakMusclePref = new Set(assessment.weakMuscles ?? []);
+  const tightMusclePref = new Set(assessment.tightMuscles ?? []);
   const allowedEquipment = new Set(inputs.ownedEquipment ?? []);
   const preset = inputs.preset ?? "balanced";
 
@@ -521,10 +547,14 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
       intensity === "recovery"
         ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max, {
             allowedEquipment,
+            preferMuscles: weakMusclePref,
+            preferMusclesInMobility: tightMusclePref,
           })
         : pickForDomain(exercises, step.domain, effectiveFloor, ceilingRank, max, {
             preferHardest: effectivePreferHardest,
             allowedEquipment,
+            preferMuscles: weakMusclePref,
+            preferMusclesInMobility: tightMusclePref,
           });
     // M9 overload: lengthen holds a move has earned (recovery ignores duration).
     let transformed: Exercise[];

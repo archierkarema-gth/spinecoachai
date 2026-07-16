@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  assessmentSchema,
   hasRedFlag,
   newAssessmentInputSchema,
   userSchema,
   type RedFlagSymptoms,
 } from "@/lib/schemas";
+import { muscleGroupEnum } from "@/lib/exercise-schemas";
 import {
   benchmarkLogSchema,
   newBenchmarkLogInputSchema,
@@ -16,6 +18,18 @@ const noFlags: RedFlagSymptoms = {
   severeWorseningPain: false,
   trauma: false,
   feverWithSevereBackPain: false,
+};
+
+const baseAssessment = {
+  id: "a1",
+  userId: "u1",
+  createdAt: 1000,
+  diagnosedByPhysician: false,
+  painLevel: 5,
+  activityLevel: "moderate" as const,
+  availableMinutesPerDay: 30,
+  primaryGoals: "Improve posture",
+  redFlags: noFlags,
 };
 
 describe("hasRedFlag", () => {
@@ -122,5 +136,32 @@ describe("newBenchmarkLogInputSchema", () => {
   it("accepts a payload without id and createdAt", () => {
     const input = { userId: "user-1", type: "plank_hold" as const, value: 30 };
     expect(newBenchmarkLogInputSchema.safeParse(input).success).toBe(true);
+  });
+});
+
+describe("assessmentSchema muscle & breathing preferences", () => {
+  it("accepts an assessment with no weakMuscles/tightMuscles/breathingPattern", () => {
+    const parsed = assessmentSchema.parse(baseAssessment);
+    expect(parsed.weakMuscles).toBeUndefined();
+    expect(parsed.tightMuscles).toBeUndefined();
+    expect(parsed.breathingPattern).toBeUndefined();
+  });
+
+  it("accepts valid muscle groups and a breathing pattern", () => {
+    const parsed = assessmentSchema.parse({
+      ...baseAssessment,
+      weakMuscles: ["glute", "core"],
+      tightMuscles: ["hip-flexor"],
+      breathingPattern: "chest-dominant",
+    });
+    expect(parsed.weakMuscles).toEqual(["glute", "core"]);
+    expect(parsed.tightMuscles).toEqual(["hip-flexor"]);
+    expect(parsed.breathingPattern).toBe("chest-dominant");
+  });
+
+  it("rejects an invalid breathingPattern value", () => {
+    expect(() =>
+      assessmentSchema.parse({ ...baseAssessment, breathingPattern: "mouth" })
+    ).toThrow();
   });
 });
