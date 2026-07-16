@@ -334,6 +334,48 @@ describe("pickForDomain", () => {
     );
     expect(hardestFirst[0].difficulty).toBe("advanced");
   });
+
+  it("surfaces a preferMuscles-overlapping exercise first among same-difficulty candidates", () => {
+    const a = {
+      ...EXERCISE_SEED[0],
+      id: "core-a",
+      domain: "core" as const,
+      difficulty: "beginner" as const,
+      muscles: ["core"] as const,
+    };
+    const b = {
+      ...EXERCISE_SEED[0],
+      id: "core-b",
+      domain: "core" as const,
+      difficulty: "beginner" as const,
+      muscles: ["glute"] as const,
+    };
+    const picks = pickForDomain([a, b], "core", 1, 3, 1, {
+      preferMuscles: new Set(["glute"]),
+    });
+    expect(picks[0].id).toBe("core-b");
+  });
+
+  it("does not apply preferMusclesInMobility outside the mobility domain", () => {
+    const a = {
+      ...EXERCISE_SEED[0],
+      id: "strength-a",
+      domain: "strength" as const,
+      difficulty: "beginner" as const,
+      muscles: ["core"] as const,
+    };
+    const b = {
+      ...EXERCISE_SEED[0],
+      id: "strength-b",
+      domain: "strength" as const,
+      difficulty: "beginner" as const,
+      muscles: ["hip-flexor"] as const,
+    };
+    const picks = pickForDomain([a, b], "strength", 1, 3, 1, {
+      preferMusclesInMobility: new Set(["hip-flexor"]),
+    });
+    expect(picks[0].id).toBe("strength-a"); // original order, no bias applied
+  });
 });
 
 describe("generateSession — advanced surfacing", () => {
