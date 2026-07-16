@@ -28,6 +28,28 @@ export type Difficulty = z.infer<typeof difficultyEnum>;
 export const sideEmphasisEnum = z.enum(["bilateral", "left", "right"]);
 export type SideEmphasis = z.infer<typeof sideEmphasisEnum>;
 
+// Generic muscle groups a movement primarily targets. Used to bias exercise
+// *ordering* within a domain toward a user's weak/tight muscles — never a
+// spine curve or biomechanical segment (docs/04_Clinical_Guardrails.md).
+export const muscleGroupEnum = z.enum([
+  "hip-flexor",
+  "hamstring",
+  "glute",
+  "quad",
+  "calf",
+  "adductor",
+  "core",
+  "lower-back",
+  "upper-back",
+  "lat",
+  "trap",
+  "shoulder",
+  "rotator-cuff",
+  "chest",
+  "neck",
+]);
+export type MuscleGroup = z.infer<typeof muscleGroupEnum>;
+
 export const exerciseSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -44,6 +66,9 @@ export const exerciseSchema = z.object({
   contraindications: z.array(z.string()),
   progressionId: z.string().nullable(),
   regressionId: z.string().nullable(),
+  // 1-3 primary muscle groups this movement targets. Defaults to [] so
+  // pre-M14 seed data (not yet retagged) still validates.
+  muscles: z.array(muscleGroupEnum).default([]),
   videoUrl: z.string().nullable(),
 });
 export type Exercise = z.infer<typeof exerciseSchema>;

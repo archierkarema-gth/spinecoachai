@@ -63,6 +63,28 @@ function inputs(overrides: Partial<EngineInputs> = {}): EngineInputs {
   };
 }
 
+describe("exerciseSchema muscles field", () => {
+  it("defaults muscles to an empty array when omitted", () => {
+    const { muscles, ...rest } = EXERCISE_SEED[0];
+    const parsed = exerciseSchema.parse(rest);
+    expect(parsed.muscles).toEqual([]);
+  });
+
+  it("accepts a list of known muscle groups", () => {
+    const parsed = exerciseSchema.parse({
+      ...EXERCISE_SEED[0],
+      muscles: ["glute", "hamstring"],
+    });
+    expect(parsed.muscles).toEqual(["glute", "hamstring"]);
+  });
+
+  it("rejects an unknown muscle group", () => {
+    expect(() =>
+      exerciseSchema.parse({ ...EXERCISE_SEED[0], muscles: ["bicep"] })
+    ).toThrow();
+  });
+});
+
 describe("decideIntensity", () => {
   it("returns recovery when pain is high", () => {
     expect(decideIntensity(checkIn({ painLevel: 8 }))).toBe("recovery");
