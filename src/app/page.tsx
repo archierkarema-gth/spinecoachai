@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Wind } from "lucide-react";
 import { TopBar } from "@/components/nav/top-bar";
+import { ThemeToggle } from "@/components/nav/theme-toggle";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ReminderBanner } from "@/components/dashboard/reminder-banner";
@@ -62,6 +63,7 @@ export default function DashboardPage() {
       <TopBar
         title={`Halo, ${user?.name ?? "Archie"}`}
         subtitle="Dashboard — ringkasan latihan & postur kamu."
+        action={<ThemeToggle />}
       />
 
       <div className="flex flex-col gap-4 px-5">

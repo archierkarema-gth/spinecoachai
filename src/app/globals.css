@@ -113,6 +113,72 @@
   }
 }
 
+/*
+  Manual light/dark override (theme-toggle.tsx). An attribute selector on
+  :root is more specific than the plain :root/@media rules above, so it
+  always wins regardless of system preference — letting a user choice
+  override prefers-color-scheme. No attribute set = system default.
+*/
+:root[data-theme="dark"] {
+  --background: #121814;
+  --foreground: #e8efe9;
+  --card-foreground: #e8efe9;
+  --popover: #1a211d;
+  --popover-foreground: #e8efe9;
+  --secondary: #232b26;
+  --secondary-foreground: #e8efe9;
+  --input: #2e3a33;
+  --ring: #7fb393;
+
+  --muted: #232b26;
+  --muted-foreground: #9dafa3;
+  --card: #1a211d;
+  --border: #2e3a33;
+
+  --primary: #7fb393;
+  --primary-foreground: #121814;
+  --primary-deep: #9cc9ac;
+
+  --accent: #9cc9ac;
+  --accent-foreground: #121814;
+
+  --success: #6fae7f;
+  --warning: #ce9c4a;
+  --destructive: #d3706c;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme="light"] {
+  --muted-foreground: oklch(0.556 0 0);
+  --card: oklch(1 0 0);
+  --border: oklch(0.922 0 0);
+
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-deep: #3e6b52;
+
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+
+  --success: #4c8c5c;
+  --warning: #b8822e;
+  --destructive: oklch(0.577 0.245 27.325);
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+
+  --shadow: 0 1px 2px rgba(31, 42, 36, 0.05), 0 4px 16px rgba(31, 42, 36, 0.06);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

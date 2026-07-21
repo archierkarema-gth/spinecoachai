@@ -57,9 +57,21 @@ export default function RootLayout({
   return (
     <html
       lang="id"
+      suppressHydrationWarning
       className={cn("h-full", "antialiased", geistMono.variable, inter.variable, spaceGrotesk.variable, "font-sans", figtree.variable)}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          // Blocking (not "use client") so the theme applies before first
+          // paint — avoids a flash of the wrong theme on load. Runs before
+          // React hydrates the <html> tag; suppressHydrationWarning above
+          // tells React the resulting data-theme attribute (set here, not
+          // present in the server-rendered markup) is expected.
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}",
+          }}
+        />
         <ServiceWorkerRegister />
         <InstallPrompt />
         <div
