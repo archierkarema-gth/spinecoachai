@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import "fake-indexeddb/auto";
 import {
+  getAllExercises,
   getAssessmentsForUser,
+  getDB,
   getFirstUser,
   getLatestAssessmentForUser,
   getUser,
@@ -9,7 +11,9 @@ import {
   putUser,
   getBenchmarkLogsForUser,
   putBenchmarkLog,
+  syncSeedExercises,
 } from "@/lib/db";
+import { EXERCISE_SEED } from "@/lib/exercise-seed";
 
 // Tests share one fake-indexeddb instance (module-level db handle in
 // lib/db.ts) — each test uses its own ids rather than resetting the db.
@@ -55,6 +59,31 @@ describe("db layer", () => {
 
     const latest = await getLatestAssessmentForUser("u1");
     expect(latest?.id).toBe("a2");
+  });
+});
+
+describe("syncSeedExercises", () => {
+  it("tops up an install whose store predates new seed entries", async () => {
+    // Simulate an old install: only the first seed exercise is present
+    // (the old seedExercisesIfEmpty would then write nothing at all).
+    const db = await getDB();
+    await db.put("exercises", EXERCISE_SEED[0]);
+    expect((await getAllExercises()).length).toBe(1);
+
+    await syncSeedExercises();
+
+    const all = await getAllExercises();
+    expect(all.length).toBe(EXERCISE_SEED.length);
+    const ids = new Set(all.map((e) => e.id));
+    // The additions this migration exists for actually arrive.
+    expect(ids.has("ex-kegel-dasar")).toBe(true);
+    expect(ids.has("ex-l-sit")).toBe(true);
+  });
+
+  it("is idempotent — a second run changes nothing", async () => {
+    await syncSeedExercises();
+    await syncSeedExercises();
+    expect((await getAllExercises()).length).toBe(EXERCISE_SEED.length);
   });
 });
 
