@@ -47,7 +47,7 @@ export function InstallPrompt() {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-16 z-40 flex items-center justify-between gap-3 border-t border-border bg-card px-5 py-3">
+    <div className="fixed inset-x-0 bottom-[4rem] z-40 flex items-center justify-between gap-3 border-t border-border bg-card px-5 py-3">
       <p className="text-sm text-foreground">
         Install SpineCoach di layar utama biar lebih cepat dibuka.
       </p>
