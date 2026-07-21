@@ -83,6 +83,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --background: #121814;
+    --foreground: #e8efe9;
+    --card-foreground: #e8efe9;
+    --popover: #1a211d;
+    --popover-foreground: #e8efe9;
+    --secondary: #232b26;
+    --secondary-foreground: #e8efe9;
+    --input: #2e3a33;
+    --ring: #7fb393;
+
+    --muted: #232b26;
     --muted-foreground: #9dafa3;
     --card: #1a211d;
     --border: #2e3a33;
