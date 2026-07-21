@@ -93,7 +93,7 @@ export default function SchrothPage() {
                 onClick={() => setOpenId(ex.id)}
                 className="text-left"
               >
-                <Card className="flex-row items-center justify-between gap-3">
+                <Card className="flex flex-row items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div
                       className={

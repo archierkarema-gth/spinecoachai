@@ -119,7 +119,7 @@ export default function DashboardPage() {
         )}
 
         <Link href="/schroth">
-          <Card className="flex-row items-center justify-between gap-3">
+          <Card className="flex flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Wind size={18} />

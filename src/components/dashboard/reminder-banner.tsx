@@ -40,7 +40,7 @@ export function ReminderBanner() {
   }
 
   return (
-    <Card className="flex-row items-center justify-between gap-3 border-transparent bg-primary/10">
+    <Card className="flex flex-row items-center justify-between gap-3 border-transparent bg-primary/10">
       <p className="text-sm text-foreground">
         Belum check-in hari ini. Yuk isi biar sesi hari ini pas.
       </p>
