@@ -12,14 +12,21 @@ Prinsip yang tidak berubah di semua milestone:
 
 Yang **ditolak** dari proposal (tidak masuk roadmap):
 
-- ❌ Profil biomekanik kurva (thoracicCurve, lumbarCurve, curveDirection,
-  severity) — melanggar guardrail "never targets a specific curve".
+- ~~❌ Profil biomekanik kurva (thoracicCurve, lumbarCurve, curveDirection,
+  severity) — melanggar guardrail "never targets a specific curve".~~
+  **Dicabut 2026-07-20** oleh keputusan eksplisit owner — lihat addendum di
+  `docs/04_Clinical_Guardrails.md` dan `clinicalProfile` di
+  `src/lib/schemas.ts`. Guardrail lain (never diagnose / never promise Cobb
+  reduction / never replace physician) TIDAK berubah.
 - ❌ Library 250–400 gerakan — inflasi; kurasi kontraindikasi tidak
   terkelola. Target realistis: 60–80 gerakan terkurasi (masuk M11).
 - ❌ AI Coach berbasis LLM — bentrok arsitektur inti (no network, no
   model). Reasoning berbahasa Indonesia sudah menjelaskan sesi.
 - ❌ Periodisasi 6-minggu kaku — bentrok filosofi reaktif-harian; diganti
-  deload berkala (M13).
+  deload berkala (M13). Progresi lanjutan (front lever/planche/archer
+  pull-up dst, 2026-07-20) tetap lewat mekanisme streak-gated M9 per-gerakan,
+  bukan blok bulan kaku — lihat `ex-commando-pullup` dst di
+  `src/lib/exercise-seed.ts`.
 
 ---
 

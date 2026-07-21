@@ -10,6 +10,7 @@ import { z } from "zod";
 // sequences a session (breathing → mobility → ... → recovery).
 export const exerciseDomainEnum = z.enum([
   "breathing",
+  "pelvic-floor",
   "mobility",
   "stability",
   "core",
@@ -39,6 +40,7 @@ export const muscleGroupEnum = z.enum([
   "calf",
   "adductor",
   "core",
+  "pelvic-floor",
   "lower-back",
   "upper-back",
   "lat",
