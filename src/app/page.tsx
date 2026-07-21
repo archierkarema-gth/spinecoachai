@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
   if (!hydrated) {
     return (
-      <div className="px-5 pt-10 text-sm text-muted-foreground">
+      <div className="px-5 pt-10 text-sm text-foreground/60">
         Memuat…
       </div>
     );
@@ -86,7 +86,7 @@ export default function DashboardPage() {
         ) : (
           <Card>
             <CardTitle>Asesmen terakhir</CardTitle>
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-card-foreground">
               Nyeri {latestAssessment.painLevel}/10 · Level aktivitas{" "}
               {latestAssessment.activityLevel} ·{" "}
               {latestAssessment.availableMinutesPerDay} menit/hari
@@ -128,7 +128,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <CardTitle className="mb-0">Schroth hari ini</CardTitle>
-                <p className="tabular text-sm font-semibold text-foreground">
+                <p className="tabular text-sm font-semibold text-card-foreground">
                   {schrothDone}/{SCHROTH_SEED.length} gerakan
                 </p>
               </div>

@@ -143,7 +143,7 @@ export default function ProgressPage() {
             {Object.entries(volumeByDomain).map(([domain, minutes]) => (
               <div
                 key={domain}
-                className="flex items-center justify-between text-sm text-foreground"
+                className="flex items-center justify-between text-sm text-card-foreground"
               >
                 <span>{DOMAIN_LABELS[domain] ?? domain}</span>
                 <span className="tabular text-muted-foreground">
@@ -228,7 +228,7 @@ export default function ProgressPage() {
               {workoutLogs.slice(0, 10).map((log) => (
                 <Card key={log.id}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">
+                    <span className="text-sm font-semibold text-card-foreground">
                       {log.movementFocus}
                     </span>
                     <span className="text-xs text-muted-foreground">

@@ -17,7 +17,7 @@ export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLPara
   return (
     <p
       className={cn(
-        "font-mono text-[11px] uppercase tracking-wider text-muted-foreground mb-2",
+        "font-mono text-[11px] uppercase tracking-wider text-card-foreground/60 mb-2",
         className
       )}
       {...props}

@@ -106,7 +106,7 @@ export default function SchrothPage() {
                       {isDone ? <Check size={16} /> : null}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">
+                      <p className="text-sm font-semibold text-card-foreground">
                         {ex.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -171,10 +171,10 @@ function SchrothDetail({
       <BreathingCircle breathSeconds={breathSeconds} running={timer.running} />
 
       <Card>
-        <p className="text-sm text-foreground">{exercise.description}</p>
+        <p className="text-sm text-card-foreground">{exercise.description}</p>
         <ul className="mt-2 flex flex-col gap-1.5">
           {exercise.cues.map((c) => (
-            <li key={c} className="text-sm text-foreground">
+            <li key={c} className="text-sm text-card-foreground">
               • {c}
             </li>
           ))}

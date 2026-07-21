@@ -108,7 +108,7 @@ export default function AssessmentPage() {
               <p className="font-semibold text-foreground">
                 Sebaiknya periksa ke dokter dulu
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-foreground/60">
                 Gejala yang kamu tandai perlu dicek tenaga medis sebelum
                 lanjut latihan. SpineCoach AI tidak mendiagnosis atau
                 menggantikan dokter — ini bukan keadaan darurat, tapi jangan
@@ -245,14 +245,14 @@ export default function AssessmentPage() {
 
         <Card className="flex flex-col gap-4">
           <div>
-            <p className="mb-2 text-sm font-semibold text-foreground">
+            <p className="mb-2 text-sm font-semibold text-card-foreground">
               Otot yang terasa lemah (opsional)
             </p>
             <div className="flex flex-col gap-2">
               {MUSCLE_GROUP_OPTIONS.map(({ value, label }) => (
                 <label
                   key={`weak-${value}`}
-                  className="flex items-center gap-2 text-sm text-foreground"
+                  className="flex items-center gap-2 text-sm text-card-foreground"
                 >
                   <input
                     type="checkbox"
@@ -267,14 +267,14 @@ export default function AssessmentPage() {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-foreground">
+            <p className="mb-2 text-sm font-semibold text-card-foreground">
               Otot yang terasa kencang/kaku (opsional)
             </p>
             <div className="flex flex-col gap-2">
               {MUSCLE_GROUP_OPTIONS.map(({ value, label }) => (
                 <label
                   key={`tight-${value}`}
-                  className="flex items-center gap-2 text-sm text-foreground"
+                  className="flex items-center gap-2 text-sm text-card-foreground"
                 >
                   <input
                     type="checkbox"
@@ -304,11 +304,11 @@ export default function AssessmentPage() {
         </Card>
 
         <Card className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-sm font-semibold text-card-foreground">
             Ada salah satu dari ini?
           </p>
           {RED_FLAG_FIELDS.map(({ key, label }) => (
-            <label key={key} className="flex items-start gap-2 text-sm text-foreground">
+            <label key={key} className="flex items-start gap-2 text-sm text-card-foreground">
               <input
                 type="checkbox"
                 className="mt-0.5 h-4 w-4"

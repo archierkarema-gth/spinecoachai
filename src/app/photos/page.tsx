@@ -98,7 +98,7 @@ export default function PhotosPage() {
       <div className="flex flex-col gap-4 px-5 pb-8">
         <Card className="flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-sm font-semibold text-foreground">Pose</p>
+            <p className="mb-1.5 text-sm font-semibold text-card-foreground">Pose</p>
             <div className="flex gap-1.5">
               {POSES.map((p) => (
                 <button
@@ -150,7 +150,7 @@ export default function PhotosPage() {
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold capitalize text-foreground">
+                    <p className="text-xs font-semibold capitalize text-card-foreground">
                       {photo.pose}
                     </p>
                     <p className="text-[11px] text-muted-foreground">

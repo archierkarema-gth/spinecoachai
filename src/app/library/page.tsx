@@ -50,7 +50,7 @@ export default function LibraryPage() {
 
       <div className="flex flex-col gap-5 px-5 pb-8">
         {!exercises ? (
-          <p className="text-sm text-muted-foreground">Memuat…</p>
+          <p className="text-sm text-foreground/60">Memuat…</p>
         ) : (
           DOMAIN_ORDER.map(({ domain, label }) => {
             const items = exercises.filter((ex) => ex.domain === domain);
@@ -62,7 +62,7 @@ export default function LibraryPage() {
                   {items.map((ex) => (
                     <Card key={ex.id}>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-foreground">
+                        <span className="text-sm font-semibold text-card-foreground">
                           {ex.name}
                         </span>
                         <span className="tabular text-xs text-muted-foreground">

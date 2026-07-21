@@ -177,7 +177,7 @@ export function SessionPlayer({
             <p
               className={
                 "font-display text-6xl tabular " +
-                (timer.done ? "text-success" : "text-foreground")
+                (timer.done ? "text-success" : "text-card-foreground")
               }
             >
               {timer.remaining}

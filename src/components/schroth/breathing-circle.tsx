@@ -41,11 +41,11 @@ export function BreathingCircle({
           } as React.CSSProperties
         }
       >
-        <div className="flex size-24 items-center justify-center rounded-full bg-primary/30 text-sm font-semibold text-primary-deep">
+        <div className="flex size-24 items-center justify-center rounded-full bg-primary/30 text-sm font-semibold text-[color:var(--breathing-label)]">
           {phase === "in" ? "Tarik napas" : "Buang napas"}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-foreground/60">
         Ikuti lingkaran: membesar = tarik napas, mengecil = buang napas.
       </p>
     </div>

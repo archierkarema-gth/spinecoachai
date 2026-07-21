@@ -21,6 +21,11 @@
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --primary-deep: #3e6b52;
+  /* Text on the Schroth breathing circle's own bg-primary/NN tint — that
+     tint tracks --primary directly, not --card, so it needs its own token
+     independent of --primary-deep (which now means "on --card" in light
+     mode, see :root[data-theme="light"] below). */
+  --breathing-label: #3e6b52;
 
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
@@ -101,6 +106,7 @@
     --primary: #7fb393;
     --primary-foreground: #121814;
     --primary-deep: #9cc9ac;
+    --breathing-label: #9cc9ac;
 
     --accent: #9cc9ac;
     --accent-foreground: #121814;
@@ -138,6 +144,7 @@
   --primary: #7fb393;
   --primary-foreground: #121814;
   --primary-deep: #9cc9ac;
+  --breathing-label: #9cc9ac;
 
   --accent: #9cc9ac;
   --accent-foreground: #121814;
@@ -150,33 +157,44 @@
 }
 
 :root[data-theme="light"] {
-  --muted-foreground: oklch(0.556 0 0);
-  --card: oklch(1 0 0);
-  --border: oklch(0.922 0 0);
+  /* Rich/deep sage green cards on a pale sage-tinted page — the "care"
+     palette's light-mode counterpart to dark mode's greens (which stay
+     dark-card + light-mint-accent). Card text uses --card-foreground
+     (light) since the card itself is a mid-dark green, not the page's
+     near-white --background. */
+  --card: #4c7a5c;
+  --card-foreground: #f5faf6;
+  --border: #3a5c46;
+  /* Tuned for legibility ON --card (where nearly every use of this token
+     lives — captions, counts, secondary lines inside Cards). The few
+     places that show muted text directly on the pale --background instead
+     (TopBar subtitle, loading states, form placeholders) use an explicit
+     text-foreground/NN class rather than this token — see those files. */
+  --muted-foreground: #c3d9c9;
 
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --primary-deep: #3e6b52;
+  --primary: #bfe0c9;
+  --primary-foreground: #16241c;
+  --primary-deep: #f5faf6;
+  --breathing-label: #16241c;
 
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: #dcecdf;
+  --accent-foreground: #1f3327;
 
   --success: #4c8c5c;
   --warning: #b8822e;
   --destructive: oklch(0.577 0.245 27.325);
 
-  --background: oklch(1 0 0);
+  --background: #f2f7f4;
   --foreground: oklch(0.145 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover: #4c7a5c;
+  --popover-foreground: #f5faf6;
+  --secondary: #dcecdf;
+  --secondary-foreground: #1f3327;
+  --muted: #dcecdf;
+  --input: #c7ddcc;
+  --ring: #4c7a5c;
 
-  --shadow: 0 1px 2px rgba(31, 42, 36, 0.05), 0 4px 16px rgba(31, 42, 36, 0.06);
+  --shadow: 0 1px 2px rgba(31, 42, 36, 0.08), 0 4px 16px rgba(31, 42, 36, 0.1);
 }
 
 @theme inline {

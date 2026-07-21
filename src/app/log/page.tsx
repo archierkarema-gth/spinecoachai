@@ -36,7 +36,7 @@ export default function LogPage() {
           workoutLogs.map((log) => (
             <Card key={log.id}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">
+                <span className="text-sm font-semibold text-card-foreground">
                   {log.movementFocus}
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -52,7 +52,7 @@ export default function LogPage() {
                     key={`${ex.exerciseId}-${i}`}
                     className="flex items-center justify-between text-xs"
                   >
-                    <span className="text-foreground">{ex.name}</span>
+                    <span className="text-card-foreground">{ex.name}</span>
                     <span className="text-success">
                       {ex.completed ? "selesai" : "dilewati"}
                     </span>

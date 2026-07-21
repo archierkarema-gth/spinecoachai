@@ -14,7 +14,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between border-b border-border py-2 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="tabular text-sm font-semibold text-foreground">
+      <span className="tabular text-sm font-semibold text-card-foreground">
         {value}
       </span>
     </div>
@@ -49,7 +49,7 @@ export default function ReportsPage() {
 
   if (!report) {
     return (
-      <div className="px-5 pt-10 text-sm text-muted-foreground">Memuat…</div>
+      <div className="px-5 pt-10 text-sm text-foreground/60">Memuat…</div>
     );
   }
 
@@ -83,7 +83,7 @@ export default function ReportsPage() {
 
         <Card>
           <CardTitle>Tujuan utama</CardTitle>
-          <p className="text-sm text-foreground">{report.primaryGoals}</p>
+          <p className="text-sm text-card-foreground">{report.primaryGoals}</p>
         </Card>
 
         <Button onClick={copy}>

@@ -54,7 +54,7 @@ export function ReminderBanner() {
           type="button"
           onClick={dismiss}
           aria-label="Tutup pengingat"
-          className="text-muted-foreground"
+          className="text-foreground/60"
         >
           ×
         </button>

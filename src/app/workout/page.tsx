@@ -96,7 +96,7 @@ export default function WorkoutPage() {
 
   if (!hydrated || !exercises) {
     return (
-      <div className="px-5 pt-10 text-sm text-muted-foreground">Memuat…</div>
+      <div className="px-5 pt-10 text-sm text-foreground/60">Memuat…</div>
     );
   }
 
@@ -145,7 +145,7 @@ export default function WorkoutPage() {
                 {session.movementFocus}
               </p>
               {session.reasoning.map((r) => (
-                <p key={r} className="mt-1 text-sm text-muted-foreground">
+                <p key={r} className="mt-1 text-sm text-foreground/60">
                   {r}
                 </p>
               ))}
@@ -208,7 +208,7 @@ export default function WorkoutPage() {
           <CardTitle>Kenapa sesi ini</CardTitle>
           <ul className="flex flex-col gap-1.5">
             {session.reasoning.map((r) => (
-              <li key={r} className="text-sm text-foreground">
+              <li key={r} className="text-sm text-card-foreground">
                 • {r}
               </li>
             ))}
@@ -228,7 +228,7 @@ export default function WorkoutPage() {
                     <span className="text-sm font-semibold text-foreground">
                       {ex.name}
                     </span>
-                    <span className="tabular text-xs text-muted-foreground">
+                    <span className="tabular text-xs text-foreground/60">
                       {ex.durationSeconds}s
                     </span>
                   </div>

@@ -30,7 +30,7 @@ export default function MorePage() {
           <Link key={href} href={href}>
             <Card className="flex h-24 flex-col items-start justify-between hover:border-primary">
               <Icon size={20} className="text-primary" />
-              <span className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-card-foreground">
                 {label}
               </span>
             </Card>

@@ -109,7 +109,7 @@ export default function PainPage() {
               {logs.map((log) => (
                 <Card key={log.id}>
                   <div className="flex items-center justify-between">
-                    <span className="tabular text-sm font-semibold text-foreground">
+                    <span className="tabular text-sm font-semibold text-card-foreground">
                       Nyeri {log.painLevel}/10
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -122,7 +122,7 @@ export default function PainPage() {
                     </p>
                   )}
                   {log.note && (
-                    <p className="mt-1 text-sm text-foreground">{log.note}</p>
+                    <p className="mt-1 text-sm text-card-foreground">{log.note}</p>
                   )}
                 </Card>
               ))}

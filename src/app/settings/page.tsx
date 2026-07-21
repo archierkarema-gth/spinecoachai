@@ -186,7 +186,7 @@ export default function SettingsPage() {
                       : "border-border"
                   }`}
                 >
-                  <span className="block text-sm font-semibold text-foreground">
+                  <span className="block text-sm font-semibold text-card-foreground">
                     {p.label}
                   </span>
                   <span className="block text-xs text-muted-foreground">
@@ -221,7 +221,7 @@ export default function SettingsPage() {
                       {checked ? "✓" : ""}
                     </span>
                     <span>
-                      <span className="block text-sm font-semibold text-foreground">
+                      <span className="block text-sm font-semibold text-card-foreground">
                         {eq.label}
                       </span>
                       <span className="block text-xs text-muted-foreground">

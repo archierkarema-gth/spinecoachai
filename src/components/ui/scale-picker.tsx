@@ -37,7 +37,7 @@ export function ScalePicker({
               "h-11 flex-1 rounded-[var(--radius-md)] border text-sm font-semibold tabular transition-colors",
               value === n
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-background text-muted-foreground"
+                : "border-border bg-background text-foreground/60"
             )}
           >
             {n}
