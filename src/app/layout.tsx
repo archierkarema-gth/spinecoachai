@@ -3,6 +3,7 @@ import { Geist_Mono, Inter, Space_Grotesk, Figtree } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { cn } from "@/lib/utils";
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
@@ -60,6 +61,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ServiceWorkerRegister />
+        <InstallPrompt />
         <div
           className="mx-auto flex w-full max-w-md flex-1 flex-col"
           style={{
