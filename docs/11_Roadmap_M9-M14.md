@@ -119,3 +119,24 @@ Scope:
 Setiap milestone dikerjakan dengan alur yang sama: brainstorm → design
 spec → implementation plan → subagent-driven TDD → verifikasi browser →
 merge.
+
+---
+
+## M15 — PWA Install Prompt + Daily Reminder _(selesai 2026-07-21)_
+
+Scope: banner reminder check-in harian di Dashboard (local-only, muncul
+setelah jam 16:00 kalau belum check-in hari itu, dismiss per-hari via
+localStorage), dan banner custom "Tambah ke Layar Utama" (`beforeinstallprompt`,
+cooldown dismiss 14 hari). Tidak ada web push/VAPID — di luar scope app
+personal tanpa backend. Tidak ada perubahan skema/DB.
+
+Spec: `docs/superpowers/specs/2026-07-21-m15-pwa-reminder-install-design.md`.
+Plan: `docs/superpowers/plans/2026-07-21-m15-pwa-reminder-install.md`.
+
+Catatan implementasi: `bottom-16` (Tailwind numeric spacing utility) tidak
+pernah ter-generate oleh JIT scanner di repo ini — diganti arbitrary value
+`bottom-[4rem]`. Juga ditemukan bug pre-existing (bukan dari M15): `Card`
+component (`src/components/ui/card.tsx`) tidak punya base class `flex`,
+jadi varian `className="flex-row ..."` di beberapa tempat (kartu Schroth
+Dashboard, halaman Schroth) render `display:block` bukan row — dicatat
+sebagai follow-up terpisah, bukan diperbaiki di milestone ini.
