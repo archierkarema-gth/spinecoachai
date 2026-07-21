@@ -35,7 +35,7 @@ export const SEED_ASSESSMENT: Omit<
   // structured clinicalProfile below (both self-report, never computed by
   // the app — docs/04_Clinical_Guardrails.md).
   curveLocationSelfReported:
-    "Double Major Curve (rontgen dokter, grade moderate). Kurva atas: thoracic proksimal T1–T5 (apex T3–T4), 32° konveks kiri (Sinistroscoliosis). Kurva utama: thoracic tengah-bawah T5–T12/L1 (apex T8–T9), 29° konveks kanan (Dextroscoliosis). ATR 8° (scoliometer), rib hump kanan menonjol pada Adam's Forward Bend Test.",
+    "Double Major Curve (rontgen dokter, grade moderate). Kurva atas: thoracic proksimal T1–T5 (apex T3–T4), 32° konveks kiri (Sinistroscoliosis). Kurva utama: thoracic tengah-bawah T6–T12/L1 (apex T8–T9), 29° konveks kanan (Dextroscoliosis). ATR 8° (scoliometer), rib hump kanan menonjol pada Adam's Forward Bend Test.",
   clinicalProfile: {
     upperCurve: {
       location: "Thoracic proksimal T1–T5 (apex T3–T4)",
@@ -43,7 +43,7 @@ export const SEED_ASSESSMENT: Omit<
       direction: "left",
     },
     mainCurve: {
-      location: "Thoracic tengah-bawah T5–T12/L1 (apex T8–T9)",
+      location: "Thoracic tengah-bawah T6–T12/L1 (apex T8–T9)",
       cobbDegrees: 29,
       direction: "right",
     },
