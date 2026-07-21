@@ -6,6 +6,7 @@ import { Wind } from "lucide-react";
 import { TopBar } from "@/components/nav/top-bar";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ReminderBanner } from "@/components/dashboard/reminder-banner";
 import { useAppStore } from "@/lib/store";
 import { putUser, getSchrothLogForDate } from "@/lib/db";
 import { computeStreak, sessionsInLastDays } from "@/lib/progress";
@@ -64,6 +65,7 @@ export default function DashboardPage() {
       />
 
       <div className="flex flex-col gap-4 px-5">
+        <ReminderBanner />
         {!latestAssessment ? (
           <Card className="bg-primary text-primary-foreground border-transparent">
             <CardTitle className="text-primary-foreground/70">
