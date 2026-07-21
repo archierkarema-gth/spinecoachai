@@ -12,14 +12,21 @@ Prinsip yang tidak berubah di semua milestone:
 
 Yang **ditolak** dari proposal (tidak masuk roadmap):
 
-- ❌ Profil biomekanik kurva (thoracicCurve, lumbarCurve, curveDirection,
-  severity) — melanggar guardrail "never targets a specific curve".
+- ~~❌ Profil biomekanik kurva (thoracicCurve, lumbarCurve, curveDirection,
+  severity) — melanggar guardrail "never targets a specific curve".~~
+  **Dicabut 2026-07-20** oleh keputusan eksplisit owner — lihat addendum di
+  `docs/04_Clinical_Guardrails.md` dan `clinicalProfile` di
+  `src/lib/schemas.ts`. Guardrail lain (never diagnose / never promise Cobb
+  reduction / never replace physician) TIDAK berubah.
 - ❌ Library 250–400 gerakan — inflasi; kurasi kontraindikasi tidak
   terkelola. Target realistis: 60–80 gerakan terkurasi (masuk M11).
 - ❌ AI Coach berbasis LLM — bentrok arsitektur inti (no network, no
   model). Reasoning berbahasa Indonesia sudah menjelaskan sesi.
 - ❌ Periodisasi 6-minggu kaku — bentrok filosofi reaktif-harian; diganti
-  deload berkala (M13).
+  deload berkala (M13). Progresi lanjutan (front lever/planche/archer
+  pull-up dst, 2026-07-20) tetap lewat mekanisme streak-gated M9 per-gerakan,
+  bukan blok bulan kaku — lihat `ex-commando-pullup` dst di
+  `src/lib/exercise-seed.ts`.
 
 ---
 
@@ -112,3 +119,24 @@ Scope:
 Setiap milestone dikerjakan dengan alur yang sama: brainstorm → design
 spec → implementation plan → subagent-driven TDD → verifikasi browser →
 merge.
+
+---
+
+## M15 — PWA Install Prompt + Daily Reminder _(selesai 2026-07-21)_
+
+Scope: banner reminder check-in harian di Dashboard (local-only, muncul
+setelah jam 16:00 kalau belum check-in hari itu, dismiss per-hari via
+localStorage), dan banner custom "Tambah ke Layar Utama" (`beforeinstallprompt`,
+cooldown dismiss 14 hari). Tidak ada web push/VAPID — di luar scope app
+personal tanpa backend. Tidak ada perubahan skema/DB.
+
+Spec: `docs/superpowers/specs/2026-07-21-m15-pwa-reminder-install-design.md`.
+Plan: `docs/superpowers/plans/2026-07-21-m15-pwa-reminder-install.md`.
+
+Catatan implementasi: `bottom-16` (Tailwind numeric spacing utility) tidak
+pernah ter-generate oleh JIT scanner di repo ini — diganti arbitrary value
+`bottom-[4rem]`. Juga ditemukan bug pre-existing (bukan dari M15): `Card`
+component (`src/components/ui/card.tsx`) tidak punya base class `flex`,
+jadi varian `className="flex-row ..."` di beberapa tempat (kartu Schroth
+Dashboard, halaman Schroth) render `display:block` bukan row — dicatat
+sebagai follow-up terpisah, bukan diperbaiki di milestone ini.

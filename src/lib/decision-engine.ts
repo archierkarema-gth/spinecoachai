@@ -4,6 +4,7 @@ import type {
   CheckIn,
   Exercise,
   ExerciseDomain,
+  MuscleGroup,
 } from "@/lib/exercise-schemas";
 import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 
@@ -195,6 +196,7 @@ const DIFFICULTY_RANK = { beginner: 1, intermediate: 2, advanced: 3 } as const;
 /** Ordered domains that make up a full session, in sequence. */
 const FULL_SEQUENCE: { domain: ExerciseDomain; label: string }[] = [
   { domain: "breathing", label: "Napas" },
+  { domain: "pelvic-floor", label: "Dasar Panggul" },
   { domain: "mobility", label: "Mobilitas" },
   { domain: "stability", label: "Stabilitas" },
   { domain: "core", label: "Core" },
@@ -206,6 +208,8 @@ const FULL_SEQUENCE: { domain: ExerciseDomain; label: string }[] = [
 
 const RECOVERY_SEQUENCE: { domain: ExerciseDomain; label: string }[] = [
   { domain: "breathing", label: "Napas" },
+  // Kegel work is low-load and safe on recovery days — it stays in.
+  { domain: "pelvic-floor", label: "Dasar Panggul" },
   { domain: "mobility", label: "Mobilitas" },
   { domain: "recovery", label: "Pemulihan" },
 ];
@@ -229,6 +233,10 @@ function slotMaxFor(
   preset: "balanced" | "muscle-priority",
   boosted: boolean
 ): number {
+  // Pelvic-floor is a single daily drill: one slot always, under every preset
+  // and intensity — the seed chain is one progression family, so a second
+  // slot would only duplicate the same movement pattern.
+  if (domain === "pelvic-floor") return 1;
   if (intensity === "recovery") return 2;
   if (preset === "muscle-priority") {
     if (MUSCLE_DOMAINS.has(domain)) return 4;
@@ -352,14 +360,26 @@ export function applyDeloadCap(
 
 /**
  * Pick exercises for a domain within a difficulty window, bodyweight only, with
- * generic left/right balancing. Never targets a specific curve (docs/04).
- * Exported for unit testing.
+ * left/right balancing. Generic by default; becomes curve-targeted only when
+ * the caller passes `preferredSide` (owner opt-in, 2026-07-20 — see the
+ * addendum in docs/04_Clinical_Guardrails.md and `deriveCorrectiveSideBias`
+ * below). Exported for unit testing.
  */
 export interface PickOptions {
   /** Sort the in-window pool hardest-first (for capable users). */
   preferHardest?: boolean;
   /** Equipment the user owns; bodyweight (empty) is always allowed. */
   allowedEquipment?: Set<string>;
+  /** M14: muscle groups from assessment.weakMuscles — biases ordering in every domain. */
+  preferMuscles?: Set<MuscleGroup>;
+  /** M14: muscle groups from assessment.tightMuscles — biases ordering in the mobility domain only. */
+  preferMusclesInMobility?: Set<MuscleGroup>;
+  /**
+   * Curve-targeted side bias (owner opt-in). Undefined = fully generic
+   * behavior (no clinicalProfile, or the profile lacks a mainCurve
+   * direction) — existing callers without this option are unaffected.
+   */
+  preferredSide?: "left" | "right";
 }
 
 export function pickForDomain(
@@ -388,18 +408,35 @@ export function pickForDomain(
       : eligible.filter((ex) => DIFFICULTY_RANK[ex.difficulty] <= ceilingRank);
 
   const dir = opts.preferHardest ? -1 : 1;
-  const byPreference = [...pool].sort(
-    (a, b) => dir * (DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty])
-  );
+  const preferSet = new Set([
+    ...(opts.preferMuscles ?? []),
+    ...(domain === "mobility" ? opts.preferMusclesInMobility ?? [] : []),
+  ]);
+  const overlapsPreferred = (ex: Exercise) =>
+    preferSet.size > 0 && ex.muscles.some((m) => preferSet.has(m));
+  const matchesSide = (ex: Exercise) =>
+    opts.preferredSide !== undefined && ex.sideEmphasis === opts.preferredSide;
+  const byPreference = [...pool].sort((a, b) => {
+    const rankDiff = dir * (DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty]);
+    if (rankDiff !== 0) return rankDiff;
+    // Same difficulty rank: curve-side preference (if opted in) breaks the
+    // tie first, then muscle-preference overlap.
+    const aSide = matchesSide(a) ? 1 : 0;
+    const bSide = matchesSide(b) ? 1 : 0;
+    if (aSide !== bSide) return bSide - aSide;
+    const aPref = overlapsPreferred(a) ? 1 : 0;
+    const bPref = overlapsPreferred(b) ? 1 : 0;
+    return bPref - aPref;
+  });
 
   const lefts = byPreference.filter((e) => e.sideEmphasis === "left");
   const rights = byPreference.filter((e) => e.sideEmphasis === "right");
   const result: Exercise[] = [];
 
-  // Generic balance: if we have both sides and room for a pair, take one each.
-  // Pairs easiest-left with easiest-right for GENERIC symmetry only — not
-  // curve-specific targeting; with the symmetric seed these are the same
-  // movement family.
+  // If we have both sides and room for a pair, take one each — generic
+  // symmetric coverage regardless of preferredSide (both sides get trained
+  // either way; preferredSide only matters when only ONE of the pair fits,
+  // handled by the sort tiebreak above surfacing the preferred side first).
   if (lefts.length > 0 && rights.length > 0 && max >= 2) {
     result.push(lefts[0], rights[0]);
   }
@@ -410,6 +447,48 @@ export function pickForDomain(
   }
   return result.slice(0, max);
 }
+
+/**
+ * Curve-targeted side bias (owner opt-in, 2026-07-20). Derives which side to
+ * elongate/breathe-into vs strengthen/activate, from the owner's own
+ * self-reported main-curve direction — using the standard Schroth
+ * convention verified against schrothmethod.com and National Scoliosis
+ * Center: elongate/breathe into the CONCAVE side, activate/strengthen the
+ * CONVEX side (rib hump sits on the convex side). Returns null when there is
+ * no clinicalProfile / no mainCurve direction — callers get fully generic
+ * behavior in that case, unchanged from before this feature existed.
+ *
+ * Deliberately keyed off the MAIN (structural, larger) curve only — the
+ * counter-curve's direction is opposite by definition in a double curve, so
+ * a single generic bias must pick one; the main curve is the more clinically
+ * significant one (matches where the rib hump actually shows up). Exercises
+ * that need to speak to a specific vertebral segment instead (e.g. the upper
+ * curve) carry that as an authored cue in exercise-seed.ts, not through this
+ * generic bias.
+ */
+export function deriveCorrectiveSideBias(
+  assessment: Assessment
+): { elongateSide: "left" | "right"; strengthenSide: "left" | "right" } | null {
+  const direction = assessment.clinicalProfile?.mainCurve?.direction;
+  if (!direction) return null;
+  const convex = direction; // convexity side, as self-reported
+  const concave = convex === "left" ? "right" : "left";
+  return { elongateSide: concave, strengthenSide: convex };
+}
+
+/** Domains where the elongate/breathing side bias applies. */
+const ELONGATE_BIAS_DOMAINS = new Set<ExerciseDomain>([
+  "breathing",
+  "mobility",
+  "recovery",
+]);
+/** Domains where the strengthen/activation side bias applies. */
+const STRENGTHEN_BIAS_DOMAINS = new Set<ExerciseDomain>([
+  "strength",
+  "stability",
+  "core",
+  "balance",
+]);
 
 /**
  * Generate today's session. Returns an escalated result (no exercises) when
@@ -472,6 +551,14 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
       "Beban latihan konsisten tinggi 4 minggu terakhir — minggu ini deload, turunkan volume buat recovery."
     );
   }
+  if (
+    assessment.breathingPattern === "chest-dominant" ||
+    assessment.breathingPattern === "shallow"
+  ) {
+    reasoning.push(
+      "Pola napasmu cenderung dada/dangkal — sesi ini tetap mengutamakan latihan napas diafragma."
+    );
+  }
 
   // 3. Weekly plan (light touch): if trained in the last ~20h, ease off one step.
   const lastSession = inputs.recentSessionTimestamps[0];
@@ -491,8 +578,11 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   const floorRank = Math.min(capability.floorRank, ceilingRank);
   const preferHardest = capability.floorRank >= 2;
   const weights = deriveGoalWeights(assessment, inputs.latestReassessment);
+  const weakMusclePref = new Set(assessment.weakMuscles ?? []);
+  const tightMusclePref = new Set(assessment.tightMuscles ?? []);
   const allowedEquipment = new Set(inputs.ownedEquipment ?? []);
   const preset = inputs.preset ?? "balanced";
+  const sideBias = deriveCorrectiveSideBias(assessment);
 
   const blocks: SessionBlock[] = [];
   let usedSeconds = 0;
@@ -517,14 +607,27 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
     const effectivePreferHardest =
       preferHardest &&
       !(preset === "muscle-priority" && CORRECTIVE_DOMAINS.has(step.domain));
+    const preferredSide = sideBias
+      ? ELONGATE_BIAS_DOMAINS.has(step.domain)
+        ? sideBias.elongateSide
+        : STRENGTHEN_BIAS_DOMAINS.has(step.domain)
+          ? sideBias.strengthenSide
+          : undefined
+      : undefined;
     const picks =
       intensity === "recovery"
         ? pickForDomain(exercises, step.domain, 1, DIFFICULTY_RANK.beginner, max, {
             allowedEquipment,
+            preferMuscles: weakMusclePref,
+            preferMusclesInMobility: tightMusclePref,
+            preferredSide,
           })
         : pickForDomain(exercises, step.domain, effectiveFloor, ceilingRank, max, {
             preferHardest: effectivePreferHardest,
             allowedEquipment,
+            preferMuscles: weakMusclePref,
+            preferMusclesInMobility: tightMusclePref,
+            preferredSide,
           });
     // M9 overload: lengthen holds a move has earned (recovery ignores duration).
     let transformed: Exercise[];
@@ -596,6 +699,13 @@ export function generateSession(inputs: EngineInputs): GeneratedSession {
   if (preset === "muscle-priority") {
     reasoning.push(
       "Preset kamu: fokus utama pembentukan otot, tetap sisipkan korektif skoliosis."
+    );
+  }
+
+  if (sideBias) {
+    const sideLabel = { left: "kiri", right: "kanan" } as const;
+    reasoning.push(
+      `Sesi diarahkan sesuai profil kurva utama: elongasi/napas sisi ${sideLabel[sideBias.elongateSide]}, penguatan sisi ${sideLabel[sideBias.strengthenSide]} (konvensi Schroth — bukan klaim mengurangi derajat kurva).`
     );
   }
 

@@ -3,6 +3,7 @@ import type { Assessment, User } from "@/lib/schemas";
 import type { CheckIn, Exercise } from "@/lib/exercise-schemas";
 import type { BenchmarkLog, PainLog, ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
 import type { Photo } from "@/lib/media-schemas";
+import type { SchrothLog } from "@/lib/schroth-schemas";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import { SEED_USER, SEED_ASSESSMENT } from "@/lib/personal-seed";
 
@@ -13,7 +14,7 @@ import { SEED_USER, SEED_ASSESSMENT } from "@/lib/personal-seed";
  */
 
 const DB_NAME = "spinecoach-ai";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 interface SpineCoachDB extends DBSchema {
   users: { key: string; value: User };
@@ -58,6 +59,11 @@ interface SpineCoachDB extends DBSchema {
   };
   medicalRecords: { key: string; value: unknown };
   reports: { key: string; value: unknown };
+  schrothLogs: {
+    key: string;
+    value: SchrothLog;
+    indexes: { "by-userId": string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<SpineCoachDB>> | null = null;
@@ -110,6 +116,12 @@ export function getDB(): Promise<IDBPDatabase<SpineCoachDB>> {
             keyPath: "id",
           });
           reassessmentLogs.createIndex("by-userId", "userId");
+        }
+        if (oldVersion < 7) {
+          const schrothLogs = db.createObjectStore("schrothLogs", {
+            keyPath: "id",
+          });
+          schrothLogs.createIndex("by-userId", "userId");
         }
       },
     });
@@ -181,13 +193,18 @@ export async function seedPersonalDataIfEmpty(): Promise<void> {
 }
 
 /**
- * Populate the exercises store from the seed the first time the app runs.
- * Idempotent: if any exercise already exists, nothing is written.
+ * Sync the exercises store with the seed: upsert every seed entry by id.
+ * Unlike the old empty-store-only seeding (`seedExercisesIfEmpty`), this also
+ * reaches installs whose store was populated by an earlier app version — new
+ * library exercises show up without a reinstall. Safe to run on every hydrate:
+ * - the store is app-owned (no UI mutates exercises), so overwriting by id
+ *   only refreshes seed data, never user data;
+ * - progression duration bumps are computed at session generation (the engine
+ *   clones), never written back to the store, so nothing earned is lost;
+ * - ids not in the seed (none are created today) are left untouched.
  */
-export async function seedExercisesIfEmpty(): Promise<void> {
+export async function syncSeedExercises(): Promise<void> {
   const db = await getDB();
-  const count = await db.count("exercises");
-  if (count > 0) return;
   const tx = db.transaction("exercises", "readwrite");
   await Promise.all(EXERCISE_SEED.map((ex) => tx.store.put(ex)));
   await tx.done;
@@ -302,6 +319,29 @@ export async function deletePhoto(id: string): Promise<void> {
   await db.delete("photos", id);
 }
 
+export async function putSchrothLog(log: SchrothLog): Promise<void> {
+  const db = await getDB();
+  await db.put("schrothLogs", log);
+}
+
+/** Schroth checklist logs for a user, newest first. */
+export async function getSchrothLogsForUser(
+  userId: string
+): Promise<SchrothLog[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("schrothLogs", "by-userId", userId);
+  return all.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/** Today's Schroth checklist for a user (by local dateKey), if any. */
+export async function getSchrothLogForDate(
+  userId: string,
+  dateKey: string
+): Promise<SchrothLog | undefined> {
+  const all = await getSchrothLogsForUser(userId);
+  return all.find((l) => l.dateKey === dateKey);
+}
+
 /**
  * Wipe every user-generated record (Settings → reset). Leaves the exercises
  * store intact so the app still has its library on next load.
@@ -322,6 +362,7 @@ export async function resetUserData(): Promise<void> {
     "photos",
     "medicalRecords",
     "reports",
+    "schrothLogs",
   ] as const;
   const tx = db.transaction(stores, "readwrite");
   await Promise.all(stores.map((s) => tx.objectStore(s).clear()));

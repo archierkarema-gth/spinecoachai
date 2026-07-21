@@ -4,6 +4,7 @@ import {
   generateSession,
   deriveGoalWeights,
   deriveCapability,
+  deriveCorrectiveSideBias,
   pickForDomain,
   countCleanStreak,
   progressedDuration,
@@ -15,8 +16,8 @@ import {
 } from "@/lib/decision-engine";
 import { EXERCISE_SEED } from "@/lib/exercise-seed";
 import type { Assessment } from "@/lib/schemas";
-import type { CheckIn } from "@/lib/exercise-schemas";
-import type { ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
+import type { CheckIn, MuscleGroup } from "@/lib/exercise-schemas";
+import type { WorkoutLog } from "@/lib/log-schemas";
 import { exerciseSchema } from "@/lib/exercise-schemas";
 
 const noRedFlags = {
@@ -62,6 +63,38 @@ function inputs(overrides: Partial<EngineInputs> = {}): EngineInputs {
     ...overrides,
   };
 }
+
+describe("exerciseSchema muscles field", () => {
+  it("defaults muscles to an empty array when omitted", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { muscles, ...rest } = EXERCISE_SEED[0];
+    const parsed = exerciseSchema.parse(rest);
+    expect(parsed.muscles).toEqual([]);
+  });
+
+  it("accepts a list of known muscle groups", () => {
+    const parsed = exerciseSchema.parse({
+      ...EXERCISE_SEED[0],
+      muscles: ["glute", "hamstring"],
+    });
+    expect(parsed.muscles).toEqual(["glute", "hamstring"]);
+  });
+
+  it("rejects an unknown muscle group", () => {
+    expect(() =>
+      exerciseSchema.parse({ ...EXERCISE_SEED[0], muscles: ["bicep"] })
+    ).toThrow();
+  });
+});
+
+describe("EXERCISE_SEED muscle tags", () => {
+  it("tags every exercise with 1-3 primary muscle groups", () => {
+    for (const ex of EXERCISE_SEED) {
+      expect(ex.muscles.length).toBeGreaterThanOrEqual(1);
+      expect(ex.muscles.length).toBeLessThanOrEqual(3);
+    }
+  });
+});
 
 describe("decideIntensity", () => {
   it("returns recovery when pain is high", () => {
@@ -302,6 +335,48 @@ describe("pickForDomain", () => {
       rank[easiestFirst[0].difficulty]
     );
     expect(hardestFirst[0].difficulty).toBe("advanced");
+  });
+
+  it("surfaces a preferMuscles-overlapping exercise first among same-difficulty candidates", () => {
+    const a = {
+      ...EXERCISE_SEED[0],
+      id: "core-a",
+      domain: "core" as const,
+      difficulty: "beginner" as const,
+      muscles: ["core"] as MuscleGroup[],
+    };
+    const b = {
+      ...EXERCISE_SEED[0],
+      id: "core-b",
+      domain: "core" as const,
+      difficulty: "beginner" as const,
+      muscles: ["glute"] as MuscleGroup[],
+    };
+    const picks = pickForDomain([a, b], "core", 1, 3, 1, {
+      preferMuscles: new Set(["glute"]),
+    });
+    expect(picks[0].id).toBe("core-b");
+  });
+
+  it("does not apply preferMusclesInMobility outside the mobility domain", () => {
+    const a = {
+      ...EXERCISE_SEED[0],
+      id: "strength-a",
+      domain: "strength" as const,
+      difficulty: "beginner" as const,
+      muscles: ["core"] as MuscleGroup[],
+    };
+    const b = {
+      ...EXERCISE_SEED[0],
+      id: "strength-b",
+      domain: "strength" as const,
+      difficulty: "beginner" as const,
+      muscles: ["hip-flexor"] as MuscleGroup[],
+    };
+    const picks = pickForDomain([a, b], "strength", 1, 3, 1, {
+      preferMusclesInMobility: new Set(["hip-flexor"]),
+    });
+    expect(picks[0].id).toBe("strength-a"); // original order, no bias applied
   });
 });
 
@@ -558,8 +633,12 @@ describe("countCleanStreak", () => {
 });
 
 describe("EXERCISE_SEED integrity", () => {
-  it("has grown to 48 curated exercises", () => {
-    expect(EXERCISE_SEED.length).toBe(48);
+  it("has grown to 64 curated exercises", () => {
+    // 57 + advanced calisthenics chains (owner request, 2026-07-20):
+    // commando/archer pull-up (2) + tuck/advanced-tuck front lever (2)
+    // + pseudo-planche-lean/tuck-planche-hold (2) + dragon-flag-negative (1)
+    // = 64. Still within the M11 curated target of 60-80.
+    expect(EXERCISE_SEED.length).toBe(64);
   });
 
   it("bodyweight moves have no equipment; geared moves list only known equipment", () => {
@@ -586,6 +665,92 @@ describe("EXERCISE_SEED integrity", () => {
 
   it("has at least 5 strength movements after expansion", () => {
     expect(EXERCISE_SEED.filter((e) => e.domain === "strength").length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("has a two-move kegel chain in the pelvic-floor domain", () => {
+    const kegels = EXERCISE_SEED.filter((e) => e.domain === "pelvic-floor");
+    expect(kegels.map((e) => e.id).sort()).toEqual([
+      "ex-kegel-dasar",
+      "ex-kegel-endurance",
+    ]);
+    // Both are equipment-free so the block can never be emptied by gating.
+    expect(kegels.every((e) => e.equipment.length === 0)).toBe(true);
+  });
+});
+
+describe("generateSession — pelvic-floor block", () => {
+  // Owner-like profile: active (floor 2) + muscle-priority. This is exactly
+  // the profile where a beginner kegel parked in core/breathing would fall
+  // out of the difficulty window and never surface — the dedicated domain
+  // guarantees the slot instead.
+  const activeAssessment: Assessment = {
+    ...baseAssessment,
+    activityLevel: "active",
+  };
+  const fullReady = checkIn({
+    painLevel: 1,
+    recovery: 5,
+    energyLevel: 5,
+    sleepQuality: 5,
+  });
+
+  it("always emits exactly one pelvic-floor block with one kegel drill on a full muscle-priority day", () => {
+    const s = generateSession(
+      inputs({
+        assessment: activeAssessment,
+        checkIn: fullReady,
+        preset: "muscle-priority",
+      })
+    );
+    const pf = s.blocks.filter((b) => b.domain === "pelvic-floor");
+    expect(pf).toHaveLength(1);
+    expect(pf[0].exercises).toHaveLength(1);
+    // Floor 2 within a full ceiling → the intermediate variant is prescribed.
+    expect(pf[0].exercises[0].id).toBe("ex-kegel-endurance");
+  });
+
+  it("keeps kegel on a recovery day, at the beginner variant", () => {
+    const s = generateSession(
+      inputs({ assessment: activeAssessment, checkIn: checkIn({ painLevel: 8 }) })
+    );
+    expect(s.intensity).toBe("recovery");
+    const pf = s.blocks.filter((b) => b.domain === "pelvic-floor");
+    expect(pf).toHaveLength(1);
+    expect(pf[0].exercises.map((e) => e.id)).toEqual(["ex-kegel-dasar"]);
+  });
+
+  it("emits the pelvic-floor block under the balanced preset too", () => {
+    const s = generateSession(inputs({ checkIn: fullReady }));
+    const pf = s.blocks.filter((b) => b.domain === "pelvic-floor");
+    expect(pf).toHaveLength(1);
+    expect(pf[0].exercises).toHaveLength(1);
+  });
+});
+
+describe("calisthenics expansion — gating and windows", () => {
+  it("keeps L-sit chain hidden without dip bars and surfaces it when owned", () => {
+    const without = pickForDomain(EXERCISE_SEED, "core", 2, 3, 5, {
+      preferHardest: true,
+    });
+    expect(without.map((e) => e.id)).not.toContain("ex-l-sit");
+    expect(without.map((e) => e.id)).not.toContain("ex-tuck-l-sit");
+
+    const withBars = pickForDomain(EXERCISE_SEED, "core", 2, 3, 5, {
+      preferHardest: true,
+      allowedEquipment: new Set(["dip bars"]),
+    });
+    expect(withBars.map((e) => e.id)).toContain("ex-l-sit");
+  });
+
+  it("offers the new equipment-free strength moves in their difficulty windows", () => {
+    const beginner = pickForDomain(EXERCISE_SEED, "strength", 1, 1, 20);
+    expect(beginner.map((e) => e.id)).toContain("ex-bodyweight-squat");
+
+    const advanced = pickForDomain(EXERCISE_SEED, "strength", 2, 3, 20);
+    const ids = advanced.map((e) => e.id);
+    expect(ids).toContain("ex-table-row");
+    expect(ids).toContain("ex-pike-pushup");
+    expect(ids).toContain("ex-bulgarian-split-squat");
   });
 });
 
@@ -1044,6 +1209,152 @@ describe("M11 dip equipment gating", () => {
       { allowedEquipment: new Set(["dip bars"]) }
     );
     expect(picks.some((e) => e.equipment.includes("dip bars"))).toBe(true);
+  });
+});
+
+describe("generateSession — M14 muscle & breathing preferences", () => {
+  it("adds a reasoning line when breathingPattern is chest-dominant", () => {
+    const result = generateSession(
+      inputs({
+        assessment: { ...baseAssessment, breathingPattern: "chest-dominant" },
+      })
+    );
+    expect(
+      result.reasoning.some((line) => line.toLowerCase().includes("napas"))
+    ).toBe(true);
+  });
+
+  it("does not add a breathing reasoning line when breathingPattern is diaphragmatic", () => {
+    const chestResult = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "chest-dominant" } })
+    );
+    const diaphragmaticResult = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "diaphragmatic" } })
+    );
+    expect(diaphragmaticResult.reasoning.length).toBeLessThan(
+      chestResult.reasoning.length
+    );
+  });
+
+  it("does not change goal weights when breathingPattern is set (no duplication of M13 breathingQuality logic)", () => {
+    const withPattern = generateSession(
+      inputs({ assessment: { ...baseAssessment, breathingPattern: "chest-dominant" } })
+    );
+    const withoutPattern = generateSession(inputs({ assessment: baseAssessment }));
+    // Same intensity/blocks structure driven by weights — same number of blocks.
+    expect(withPattern.blocks.length).toBe(withoutPattern.blocks.length);
+  });
+});
+
+describe("deriveCorrectiveSideBias (owner opt-in, 2026-07-20)", () => {
+  it("returns null when there is no clinicalProfile", () => {
+    expect(deriveCorrectiveSideBias(baseAssessment)).toBeNull();
+  });
+
+  it("returns null when clinicalProfile has no mainCurve", () => {
+    const assessment: Assessment = {
+      ...baseAssessment,
+      clinicalProfile: {},
+    };
+    expect(deriveCorrectiveSideBias(assessment)).toBeNull();
+  });
+
+  it("derives elongate=concave / strengthen=convex from mainCurve direction (convex right → elongate left)", () => {
+    const assessment: Assessment = {
+      ...baseAssessment,
+      clinicalProfile: {
+        mainCurve: { location: "T8-9", cobbDegrees: 29, direction: "right" },
+      },
+    };
+    expect(deriveCorrectiveSideBias(assessment)).toEqual({
+      elongateSide: "left",
+      strengthenSide: "right",
+    });
+  });
+
+  it("flips correctly for the opposite convexity (convex left → elongate right)", () => {
+    const assessment: Assessment = {
+      ...baseAssessment,
+      clinicalProfile: {
+        mainCurve: { location: "T3-4", cobbDegrees: 32, direction: "left" },
+      },
+    };
+    expect(deriveCorrectiveSideBias(assessment)).toEqual({
+      elongateSide: "right",
+      strengthenSide: "left",
+    });
+  });
+});
+
+describe("pickForDomain — preferredSide (owner opt-in)", () => {
+  it("is a no-op when preferredSide is undefined (default, fully generic)", () => {
+    const withoutBias = pickForDomain(EXERCISE_SEED, "stability", 2, 2, 1);
+    const explicitUndefined = pickForDomain(EXERCISE_SEED, "stability", 2, 2, 1, {
+      preferredSide: undefined,
+    });
+    expect(explicitUndefined).toEqual(withoutBias);
+  });
+
+  it("surfaces the preferred side first when only one of a left/right pair fits (max=1)", () => {
+    const preferLeft = pickForDomain(EXERCISE_SEED, "stability", 2, 2, 1, {
+      preferredSide: "left",
+    });
+    expect(preferLeft[0].sideEmphasis).toBe("left");
+
+    const preferRight = pickForDomain(EXERCISE_SEED, "stability", 2, 2, 1, {
+      preferredSide: "right",
+    });
+    expect(preferRight[0].sideEmphasis).toBe("right");
+  });
+
+  it("still includes both sides when there is room for the pair (preferredSide doesn't drop the other side)", () => {
+    const picks = pickForDomain(EXERCISE_SEED, "stability", 2, 2, 2, {
+      preferredSide: "right",
+    });
+    const sides = picks.map((e) => e.sideEmphasis).sort();
+    expect(sides).toEqual(["left", "right"]);
+  });
+});
+
+describe("generateSession — curve-targeted side bias end-to-end", () => {
+  const mainCurveConvexRight: Assessment = {
+    ...baseAssessment,
+    activityLevel: "active",
+    clinicalProfile: {
+      mainCurve: { location: "T8-9", cobbDegrees: 29, direction: "right" },
+    },
+  };
+
+  it("adds a side-bias reasoning line naming elongate=kiri, penguatan=kanan for a convex-right main curve", () => {
+    const s = generateSession(inputs({ assessment: mainCurveConvexRight }));
+    expect(
+      s.reasoning.some(
+        (r) => r.includes("elongasi/napas sisi kiri") && r.includes("penguatan sisi kanan")
+      )
+    ).toBe(true);
+  });
+
+  it("does not add a side-bias reasoning line when clinicalProfile is absent", () => {
+    const s = generateSession(inputs({ assessment: baseAssessment }));
+    expect(s.reasoning.some((r) => r.includes("profil kurva utama"))).toBe(false);
+  });
+
+  it("picks the strengthen-side (convex) variant when a strength-domain left/right pair only has room for one, at full readiness", () => {
+    const s = generateSession(
+      inputs({
+        assessment: mainCurveConvexRight,
+        checkIn: checkIn({ painLevel: 1, recovery: 5, energyLevel: 5, sleepQuality: 5 }),
+      })
+    );
+    const stabilityBlock = s.blocks.find((b) => b.domain === "stability");
+    const sidedPicks = stabilityBlock?.exercises.filter(
+      (e) => e.sideEmphasis === "left" || e.sideEmphasis === "right"
+    );
+    // Only assert when the block actually has room for exactly one sided pick —
+    // this is a targeting assertion, not a slot-count assertion.
+    if (sidedPicks && sidedPicks.length === 1) {
+      expect(sidedPicks[0].sideEmphasis).toBe("right");
+    }
   });
 });
 

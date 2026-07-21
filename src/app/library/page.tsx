@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { TopBar } from "@/components/nav/top-bar";
 import { Card, CardTitle } from "@/components/ui/card";
-import { getAllExercises, seedExercisesIfEmpty } from "@/lib/db";
+import { getAllExercises, syncSeedExercises } from "@/lib/db";
 import type {
   Exercise,
   ExerciseDomain,
@@ -12,6 +12,7 @@ import type {
 
 const DOMAIN_ORDER: { domain: ExerciseDomain; label: string }[] = [
   { domain: "breathing", label: "Napas" },
+  { domain: "pelvic-floor", label: "Dasar Panggul" },
   { domain: "mobility", label: "Mobilitas" },
   { domain: "stability", label: "Stabilitas" },
   { domain: "core", label: "Core" },
@@ -37,7 +38,7 @@ export default function LibraryPage() {
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
 
   useEffect(() => {
-    seedExercisesIfEmpty().then(getAllExercises).then(setExercises);
+    syncSeedExercises().then(getAllExercises).then(setExercises);
   }, []);
 
   return (

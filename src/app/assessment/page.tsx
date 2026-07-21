@@ -27,6 +27,24 @@ const RED_FLAG_FIELDS = [
   { key: "feverWithSevereBackPain", label: "Demam disertai nyeri punggung berat" },
 ] as const;
 
+const MUSCLE_GROUP_OPTIONS: { value: string; label: string }[] = [
+  { value: "hip-flexor", label: "Panggul depan (hip flexor)" },
+  { value: "hamstring", label: "Hamstring" },
+  { value: "glute", label: "Bokong (glute)" },
+  { value: "quad", label: "Paha depan (quad)" },
+  { value: "calf", label: "Betis" },
+  { value: "adductor", label: "Paha dalam (adductor)" },
+  { value: "core", label: "Perut/core" },
+  { value: "lower-back", label: "Punggung bawah" },
+  { value: "upper-back", label: "Punggung atas" },
+  { value: "lat", label: "Lat (sisi punggung)" },
+  { value: "trap", label: "Trapezius (bahu-leher)" },
+  { value: "shoulder", label: "Bahu" },
+  { value: "rotator-cuff", label: "Rotator cuff" },
+  { value: "chest", label: "Dada" },
+  { value: "neck", label: "Leher" },
+];
+
 export default function AssessmentPage() {
   const router = useRouter();
   const { user, hydrate, hydrated, setLatestAssessment } = useAppStore();
@@ -48,6 +66,9 @@ export default function AssessmentPage() {
       painLevel: 0,
       activityLevel: "light",
       availableMinutesPerDay: 20,
+      weakMuscles: [],
+      tightMuscles: [],
+      breathingPattern: "not-sure",
       redFlags: {
         neurologicalSymptoms: false,
         bowelBladderChanges: false,
@@ -219,6 +240,66 @@ export default function AssessmentPage() {
                 {errors.primaryGoals.message}
               </p>
             )}
+          </div>
+        </Card>
+
+        <Card className="flex flex-col gap-4">
+          <div>
+            <p className="mb-2 text-sm font-semibold text-foreground">
+              Otot yang terasa lemah (opsional)
+            </p>
+            <div className="flex flex-col gap-2">
+              {MUSCLE_GROUP_OPTIONS.map(({ value, label }) => (
+                <label
+                  key={`weak-${value}`}
+                  className="flex items-center gap-2 text-sm text-foreground"
+                >
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    value={value}
+                    {...register("weakMuscles")}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-foreground">
+              Otot yang terasa kencang/kaku (opsional)
+            </p>
+            <div className="flex flex-col gap-2">
+              {MUSCLE_GROUP_OPTIONS.map(({ value, label }) => (
+                <label
+                  key={`tight-${value}`}
+                  className="flex items-center gap-2 text-sm text-foreground"
+                >
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    value={value}
+                    {...register("tightMuscles")}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="breathingPattern">Pola napas (opsional)</Label>
+            <select
+              id="breathingPattern"
+              className="h-11 w-full rounded-[var(--radius-md)] border border-border bg-background px-3 text-sm"
+              {...register("breathingPattern")}
+            >
+              <option value="not-sure">Tidak yakin</option>
+              <option value="diaphragmatic">Napas perut (diafragma)</option>
+              <option value="chest-dominant">Napas dada</option>
+              <option value="shallow">Napas dangkal</option>
+            </select>
           </div>
         </Card>
 

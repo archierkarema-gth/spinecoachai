@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Wind } from "lucide-react";
 import { TopBar } from "@/components/nav/top-bar";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ReminderBanner } from "@/components/dashboard/reminder-banner";
 import { useAppStore } from "@/lib/store";
-import { putUser } from "@/lib/db";
+import { putUser, getSchrothLogForDate } from "@/lib/db";
 import { computeStreak, sessionsInLastDays } from "@/lib/progress";
+import { SCHROTH_SEED } from "@/lib/schroth-seed";
+import { todayKey } from "@/lib/schroth-schemas";
 
 // Personal-use MVP (docs/01_Project_Charter.md): single local user, seeded
 // on first load so the assessment can attach to a userId immediately.
@@ -32,10 +36,18 @@ export default function DashboardPage() {
 
   const streak = useMemo(() => computeStreak(workoutLogs), [workoutLogs]);
   const week = useMemo(() => sessionsInLastDays(workoutLogs, 7), [workoutLogs]);
+  const [schrothDone, setSchrothDone] = useState(0);
 
   useEffect(() => {
     hydrate().then(ensureUser);
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!user) return;
+    getSchrothLogForDate(user.id, todayKey()).then((log) =>
+      setSchrothDone(log?.completedIds.length ?? 0)
+    );
+  }, [user]);
 
   if (!hydrated) {
     return (
@@ -53,6 +65,7 @@ export default function DashboardPage() {
       />
 
       <div className="flex flex-col gap-4 px-5">
+        <ReminderBanner />
         {!latestAssessment ? (
           <Card className="bg-primary text-primary-foreground border-transparent">
             <CardTitle className="text-primary-foreground/70">
@@ -63,7 +76,7 @@ export default function DashboardPage() {
               program latihan yang aman buat kamu.
             </p>
             <Link href="/assessment">
-              <Button variant="primary" className="w-full">
+              <Button variant="default" className="w-full">
                 Mulai asesmen awal
               </Button>
             </Link>
@@ -104,6 +117,22 @@ export default function DashboardPage() {
             </Link>
           </Card>
         )}
+
+        <Link href="/schroth">
+          <Card className="flex flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Wind size={18} />
+              </div>
+              <div>
+                <CardTitle className="mb-0">Schroth hari ini</CardTitle>
+                <p className="tabular text-sm font-semibold text-foreground">
+                  {schrothDone}/{SCHROTH_SEED.length} gerakan
+                </p>
+              </div>
+            </div>
+          </Card>
+        </Link>
 
         <Link href="/progress">
           <Card className="grid grid-cols-2 gap-3">

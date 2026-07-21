@@ -13,6 +13,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-diaphragmatic-breathing",
     name: "Diaphragmatic Breathing",
+    muscles: ["core"],
     domain: "breathing",
     difficulty: "beginner",
     durationSeconds: 120,
@@ -27,6 +28,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-90-90-breathing",
     name: "90/90 Breathing",
+    muscles: ["core"],
     domain: "breathing",
     difficulty: "intermediate",
     durationSeconds: 150,
@@ -41,6 +43,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-cat-cow",
     name: "Cat-Cow",
+    muscles: ["upper-back"],
     domain: "mobility",
     difficulty: "beginner",
     durationSeconds: 90,
@@ -55,12 +58,17 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-thread-the-needle",
     name: "Thread the Needle",
+    muscles: ["upper-back"],
     domain: "mobility",
     difficulty: "intermediate",
     durationSeconds: 90,
     equipment: [],
     sideEmphasis: "bilateral",
-    cues: ["Rotasi dari punggung atas", "Ikuti tangan dengan pandangan"],
+    cues: [
+      "Rotasi dari punggung atas",
+      "Ikuti tangan dengan pandangan",
+      "Owner: fokus reach ke kiri (arah dari catatan fisioterapis, sesuai rib hump kanan) — tetap lakukan dua sisi, jangan hanya satu arah",
+    ],
     contraindications: ["Nyeri bahu saat menumpu"],
     progressionId: null,
     regressionId: "ex-cat-cow",
@@ -69,6 +77,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-dead-bug",
     name: "Dead Bug",
+    muscles: ["core"],
     domain: "core",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -83,12 +92,17 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-bird-dog",
     name: "Bird Dog",
+    muscles: ["core", "glute", "pelvic-floor"],
     domain: "core",
     difficulty: "intermediate",
     durationSeconds: 60,
     equipment: [],
     sideEmphasis: "bilateral",
-    cues: ["Panggul tetap rata", "Julurkan lawan tangan-kaki, tahan 2 detik"],
+    cues: [
+      "Panggul tetap rata",
+      "Julurkan lawan tangan-kaki, tahan 2 detik",
+      "Owner: kencangkan dasar panggul (Kegel) ringan saat menahan posisi",
+    ],
     contraindications: ["Nyeri saat ekstensi pinggul"],
     progressionId: null,
     regressionId: "ex-dead-bug",
@@ -97,6 +111,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-left",
     name: "Side Plank (Kiri)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -111,6 +126,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-knees-left",
     name: "Side Plank Lutut (Kiri)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 40,
@@ -125,6 +141,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-right",
     name: "Side Plank (Kanan)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -139,6 +156,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-side-plank-knees-right",
     name: "Side Plank Lutut (Kanan)",
+    muscles: ["core", "glute"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 40,
@@ -153,6 +171,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-stance",
     name: "Single-Leg Stance",
+    muscles: ["glute", "core"],
     domain: "balance",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -167,6 +186,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-reach",
     name: "Single-Leg Reach",
+    muscles: ["glute", "core"],
     domain: "balance",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -181,6 +201,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-glute-bridge",
     name: "Glute Bridge",
+    muscles: ["glute"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -195,6 +216,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-bridge",
     name: "Single-Leg Glute Bridge",
+    muscles: ["glute"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -209,6 +231,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-wall-sit",
     name: "Wall Sit",
+    muscles: ["quad", "glute"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -223,6 +246,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-marching-in-place",
     name: "Marching in Place",
+    muscles: ["quad", "calf"],
     domain: "conditioning",
     difficulty: "beginner",
     durationSeconds: 120,
@@ -237,12 +261,17 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-child-pose",
     name: "Child's Pose",
+    muscles: ["lower-back"],
     domain: "recovery",
     difficulty: "beginner",
     durationSeconds: 90,
     equipment: [],
     sideEmphasis: "bilateral",
-    cues: ["Napas ke punggung", "Rileks bahu"],
+    cues: [
+      "Napas ke punggung",
+      "Rileks bahu",
+      "Owner: reach tangan ke kanan opsional — meregangkan/elongasi sisi KIRI (concave, kurva utama T8-9 konveks kanan), sesuai konvensi Schroth (elongasi sisi concave, lihat docs/04_Clinical_Guardrails.md). Ini menargetkan kurva UTAMA, bukan kurva atas (konveks kiri) — resolved 2026-07-20 via riset, bukan kontradiksi seperti dugaan awal.",
+    ],
     contraindications: ["Nyeri lutut menekuk penuh"],
     progressionId: null,
     regressionId: null,
@@ -251,6 +280,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-supine-twist",
     name: "Supine Twist",
+    muscles: ["lower-back"],
     domain: "recovery",
     difficulty: "beginner",
     durationSeconds: 90,
@@ -266,6 +296,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-wall-pushup",
     name: "Wall Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -280,6 +311,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-incline-pushup",
     name: "Incline Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -294,6 +326,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-knee-pushup",
     name: "Knee Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 45,
@@ -308,6 +341,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-full-pushup",
     name: "Full Push-up",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -322,6 +356,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-split-squat",
     name: "Split Squat",
+    muscles: ["quad", "glute"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -336,6 +371,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-reverse-lunge",
     name: "Reverse Lunge",
+    muscles: ["quad", "glute"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -350,6 +386,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-calf-raise",
     name: "Calf Raise",
+    muscles: ["calf"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -365,6 +402,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-wall-angel",
     name: "Wall Angel",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -379,12 +417,17 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-prone-ytw",
     name: "Prone Y-T-W Raises",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 60,
     equipment: [],
     sideEmphasis: "bilateral",
-    cues: ["Tengkurap, angkat lengan bentuk Y-T-W", "Remas tulang belikat"],
+    cues: [
+      "Tengkurap, angkat lengan bentuk Y-T-W",
+      "Remas tulang belikat",
+      "6 rep per huruf (Y, T, W) — aktivasi trapezius tengah/bawah & rhomboid",
+    ],
     contraindications: ["Nyeri bahu saat mengangkat", "Nyeri leher saat tengkurap"],
     progressionId: null,
     regressionId: "ex-wall-angel",
@@ -393,6 +436,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-chin-tuck",
     name: "Chin Tuck",
+    muscles: ["neck", "upper-back"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -407,6 +451,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-prone-press-up",
     name: "Prone Press-up",
+    muscles: ["lower-back"],
     domain: "mobility",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -422,6 +467,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-front-plank-knees",
     name: "Front Plank Lutut",
+    muscles: ["core"],
     domain: "core",
     difficulty: "beginner",
     durationSeconds: 40,
@@ -436,6 +482,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-front-plank",
     name: "Front Plank",
+    muscles: ["core"],
     domain: "core",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -450,6 +497,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-hollow-hold",
     name: "Hollow-Body Hold",
+    muscles: ["core"],
     domain: "core",
     difficulty: "advanced",
     durationSeconds: 40,
@@ -465,6 +513,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-dead-hang",
     name: "Dead Hang",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 30,
@@ -479,6 +528,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-scapular-pull",
     name: "Scapular Pull",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -493,6 +543,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-negative-pullup",
     name: "Negative Pull-up",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -507,6 +558,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-full-pullup",
     name: "Full Pull-up",
+    muscles: ["lat", "upper-back"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -514,7 +566,7 @@ export const EXERCISE_SEED: Exercise[] = [
     sideEmphasis: "bilateral",
     cues: ["Tarik sampai dagu di atas bar", "Turun penuh terkontrol"],
     contraindications: ["Nyeri bahu/siku saat menarik", "Kesemutan/menjalar ke tangan"],
-    progressionId: null,
+    progressionId: "ex-commando-pullup",
     regressionId: "ex-negative-pullup",
     videoUrl: null,
   },
@@ -522,6 +574,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-clamshell-raise",
     name: "Clamshell Raise",
+    muscles: ["glute"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -536,6 +589,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-glute-bridge-march",
     name: "Glute Bridge March",
+    muscles: ["glute", "core"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 50,
@@ -550,6 +604,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-standing-hip-hinge",
     name: "Standing Hip Hinge",
+    muscles: ["hamstring", "glute"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 50,
@@ -565,6 +620,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-scapular-wall-slide",
     name: "Scapular Wall Slide",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -579,6 +635,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-prone-t-raise",
     name: "Prone T Raise",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "beginner",
     durationSeconds: 45,
@@ -593,6 +650,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-scapular-pushup",
     name: "Scapular Push-up",
+    muscles: ["upper-back", "shoulder"],
     domain: "stability",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -608,6 +666,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-dip-support-hold",
     name: "Dip Support Hold",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "beginner",
     durationSeconds: 30,
@@ -622,6 +681,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-negative-dip",
     name: "Negative Dip",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "intermediate",
     durationSeconds: 40,
@@ -636,6 +696,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-full-dip",
     name: "Full Dip",
+    muscles: ["chest", "shoulder"],
     domain: "strength",
     difficulty: "advanced",
     durationSeconds: 45,
@@ -651,6 +712,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-tandem-stance",
     name: "Tandem Stance",
+    muscles: ["glute", "core"],
     domain: "balance",
     difficulty: "beginner",
     durationSeconds: 60,
@@ -665,6 +727,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-rdl",
     name: "Single-Leg RDL",
+    muscles: ["hamstring", "glute"],
     domain: "balance",
     difficulty: "intermediate",
     durationSeconds: 60,
@@ -679,6 +742,7 @@ export const EXERCISE_SEED: Exercise[] = [
   {
     id: "ex-single-leg-squat-box",
     name: "Single-Leg Squat ke Kursi",
+    muscles: ["quad", "glute"],
     domain: "balance",
     difficulty: "advanced",
     durationSeconds: 60,
@@ -688,6 +752,377 @@ export const EXERCISE_SEED: Exercise[] = [
     contraindications: ["Nyeri lutut menekuk beban", "Keseimbangan buruk tanpa pegangan"],
     progressionId: null,
     regressionId: "ex-single-leg-rdl",
+    videoUrl: null,
+  },
+  // Pelvic floor (kegel) chain — its own domain so the engine always gives it
+  // one guaranteed slot per session, including recovery days. Low-load and
+  // breathing-coordinated; NOT for an already-overactive/tense pelvic floor.
+  {
+    id: "ex-kegel-dasar",
+    name: "Kegel Dasar",
+    muscles: ["pelvic-floor"],
+    domain: "pelvic-floor",
+    difficulty: "beginner",
+    durationSeconds: 60,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Kencangkan otot dasar panggul seperti menahan buang air kecil",
+      "Tahan 3–5 detik, lalu rileks penuh sama lama",
+      "Napas tetap normal — jangan tahan napas",
+      "Perut, paha, dan glute tetap rileks",
+    ],
+    contraindications: [
+      "Nyeri panggul saat mengencangkan",
+      "Dasar panggul terasa tegang berlebih/nyeri kronis — konsultasi dulu",
+    ],
+    progressionId: "ex-kegel-endurance",
+    regressionId: null,
+    videoUrl: null,
+  },
+  {
+    id: "ex-kegel-endurance",
+    name: "Kegel Endurance",
+    muscles: ["pelvic-floor"],
+    domain: "pelvic-floor",
+    difficulty: "intermediate",
+    durationSeconds: 75,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Kencangkan bertahap sampai maksimal terkontrol",
+      "Tahan 8–10 detik, rileks penuh 8–10 detik",
+      "Buang napas pelan saat mengencangkan",
+      "Berhenti bila otot mulai ikut tegang di perut/paha",
+    ],
+    contraindications: [
+      "Nyeri panggul saat mengencangkan",
+      "Dasar panggul terasa tegang berlebih/nyeri kronis — konsultasi dulu",
+    ],
+    progressionId: null,
+    regressionId: "ex-kegel-dasar",
+    videoUrl: null,
+  },
+  // Calisthenics — squat chain (bodyweight, home-friendly, no axial loading).
+  {
+    id: "ex-bodyweight-squat",
+    name: "Bodyweight Squat",
+    muscles: ["quad", "glute"],
+    domain: "strength",
+    difficulty: "beginner",
+    durationSeconds: 60,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Kaki selebar bahu, dada tegak",
+      "Turun terkontrol sampai paha sejajar lantai kalau mampu",
+      "Dorong naik lewat tumit",
+    ],
+    contraindications: ["Nyeri lutut menekuk beban", "Nyeri pinggang saat jongkok"],
+    progressionId: "ex-bulgarian-split-squat",
+    regressionId: "ex-wall-sit",
+    videoUrl: null,
+  },
+  {
+    id: "ex-bulgarian-split-squat",
+    name: "Bulgarian Split Squat",
+    muscles: ["quad", "glute"],
+    domain: "strength",
+    difficulty: "advanced",
+    durationSeconds: 60,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Kaki belakang di kursi/sofa",
+      "Turun lurus, badan tegak, lutut depan di atas mata kaki",
+      "Ganti sisi tiap set",
+    ],
+    contraindications: [
+      "Nyeri lutut menekuk beban",
+      "Keseimbangan buruk tanpa pegangan",
+    ],
+    progressionId: null,
+    regressionId: "ex-split-squat",
+    videoUrl: null,
+  },
+  // Calisthenics — horizontal pull (uses a sturdy table, no equipment gate).
+  {
+    id: "ex-table-row",
+    name: "Table Row",
+    muscles: ["lat", "upper-back"],
+    domain: "strength",
+    difficulty: "intermediate",
+    durationSeconds: 45,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Berbaring di bawah meja kokoh, pegang tepinya",
+      "Tarik dada ke arah meja, tubuh satu garis",
+      "Remas tulang belikat di atas, turun terkontrol",
+    ],
+    contraindications: [
+      "Nyeri bahu saat menarik",
+      "Meja tidak stabil/tidak kuat menahan badan",
+    ],
+    progressionId: "ex-scapular-pull",
+    regressionId: null,
+    videoUrl: null,
+  },
+  // Calisthenics — vertical push (shoulder-dominant; handstand deliberately
+  // excluded per docs/04 — avoids heavy axial spinal loading).
+  {
+    id: "ex-pike-pushup",
+    name: "Pike Push-up",
+    muscles: ["shoulder", "chest"],
+    domain: "strength",
+    difficulty: "advanced",
+    durationSeconds: 45,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Posisi pike: panggul tinggi, badan huruf A",
+      "Tekuk siku, kepala turun ke arah lantai di depan tangan",
+      "Dorong naik terkontrol, tumit boleh terangkat",
+    ],
+    contraindications: [
+      "Nyeri bahu saat menekan",
+      "Pusing saat kepala di bawah",
+      "Nyeri pergelangan tangan",
+    ],
+    progressionId: null,
+    regressionId: "ex-knee-pushup",
+    videoUrl: null,
+  },
+  // Calisthenics — L-sit chain (core domain, gated by "dip bars"/parallettes).
+  {
+    id: "ex-l-sit-foot-supported",
+    name: "L-Sit Kaki Menapak",
+    muscles: ["core", "hip-flexor"],
+    domain: "core",
+    difficulty: "beginner",
+    durationSeconds: 30,
+    equipment: ["dip bars"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Tumpu di palang, bahu turun jauh dari telinga",
+      "Kaki masih menapak/menyentuh lantai membentuk L",
+      "Core aktif, napas tetap jalan",
+    ],
+    contraindications: ["Nyeri bahu saat menumpu", "Nyeri pergelangan tangan"],
+    progressionId: "ex-tuck-l-sit",
+    regressionId: null,
+    videoUrl: null,
+  },
+  {
+    id: "ex-tuck-l-sit",
+    name: "Tuck L-Sit",
+    muscles: ["core", "hip-flexor"],
+    domain: "core",
+    difficulty: "intermediate",
+    durationSeconds: 30,
+    equipment: ["dip bars"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Angkat kedua kaki, lutut ditekuk ke dada",
+      "Bahu tetap turun, lengan lurus",
+      "Tahan tanpa mengayun",
+    ],
+    contraindications: [
+      "Nyeri bahu saat menumpu",
+      "Nyeri pergelangan tangan",
+      "Punggung bawah melengkung tak terkontrol",
+    ],
+    progressionId: "ex-l-sit",
+    regressionId: "ex-l-sit-foot-supported",
+    videoUrl: null,
+  },
+  {
+    id: "ex-l-sit",
+    name: "L-Sit",
+    muscles: ["core", "hip-flexor"],
+    domain: "core",
+    difficulty: "advanced",
+    durationSeconds: 30,
+    equipment: ["dip bars"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Kaki lurus ke depan sejajar lantai",
+      "Dorong palang ke bawah, bahu aktif",
+      "Tahan terkontrol, turunkan sebelum form rusak",
+    ],
+    contraindications: [
+      "Nyeri bahu saat menumpu",
+      "Nyeri pergelangan tangan",
+      "Nyeri pinggang saat menahan posisi",
+    ],
+    progressionId: null,
+    regressionId: "ex-tuck-l-sit",
+    videoUrl: null,
+  },
+  // Owner request (2026-07-20): continuous advanced calisthenics progression,
+  // not perpetually beginner-tier. These chains extend the existing pull-up
+  // and L-sit families to elite-tier moves. Handstand hold / handstand
+  // push-up negative were deliberately NOT added here — same axial-spinal-
+  // loading exclusion already applied to pike push-up above (docs/04).
+  // Full/straddle front lever and full/straddle planche are also
+  // deliberately not added yet — stopped at "advanced tuck" tier pending the
+  // owner's physio sign-off, not a silent cap (flagged in chat).
+  {
+    id: "ex-commando-pullup",
+    name: "Commando Pull-up",
+    muscles: ["lat", "upper-back", "core"],
+    domain: "strength",
+    difficulty: "advanced",
+    durationSeconds: 40,
+    equipment: ["pull-up bar"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Gantung dengan grip diagonal (satu tangan depan, satu belakang bar)",
+      "Tarik bergantian ke sisi kiri lalu kanan kepala",
+      "Ganti sisi grip tiap set",
+    ],
+    contraindications: [
+      "Nyeri bahu/siku saat menarik",
+      "Kesemutan/menjalar ke tangan",
+      "Baru coba kalau Full Pull-up sudah bersih & tanpa nyeri berulang kali — jangan loncat langsung",
+    ],
+    progressionId: "ex-archer-pullup",
+    regressionId: "ex-full-pullup",
+    videoUrl: null,
+  },
+  {
+    id: "ex-archer-pullup",
+    name: "Archer Pull-up",
+    muscles: ["lat", "upper-back", "core"],
+    domain: "strength",
+    difficulty: "advanced",
+    durationSeconds: 40,
+    equipment: ["pull-up bar"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Tarik badan condong ke satu sisi, lengan sisi lain lurus menyamping",
+      "Ganti sisi tiap rep atau tiap set",
+      "Kontrol turunnya, jangan mengayun",
+    ],
+    contraindications: [
+      "Nyeri bahu/siku saat menarik",
+      "Kesemutan/menjalar ke tangan",
+      "Baru coba kalau Commando Pull-up sudah bersih & tanpa nyeri berulang kali",
+    ],
+    progressionId: null,
+    regressionId: "ex-commando-pullup",
+    videoUrl: null,
+  },
+  {
+    id: "ex-tuck-front-lever-hold",
+    name: "Tuck Front Lever Hold",
+    muscles: ["lat", "upper-back", "core"],
+    domain: "strength",
+    difficulty: "advanced",
+    durationSeconds: 20,
+    equipment: ["pull-up bar"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Gantung di bar, tarik lutut ke dada sambil badan mendatar",
+      "Bahu aktif tertarik ke bawah, jangan biarkan pasif",
+      "Tahan terkontrol, turunkan sebelum form rusak",
+    ],
+    contraindications: [
+      "Nyeri bahu/siku saat menahan",
+      "Kesemutan/menjalar ke tangan",
+      "Nyeri punggung bawah saat menahan posisi datar",
+      "Baru coba kalau Negative Pull-up & Scapular Pull sudah bersih — butuh dasar tarikan bahu yang kuat dulu",
+    ],
+    progressionId: "ex-advanced-tuck-front-lever-hold",
+    regressionId: "ex-negative-pullup",
+    videoUrl: null,
+  },
+  {
+    id: "ex-advanced-tuck-front-lever-hold",
+    name: "Advanced Tuck Front Lever Hold",
+    muscles: ["lat", "upper-back", "core"],
+    domain: "strength",
+    difficulty: "advanced",
+    durationSeconds: 20,
+    equipment: ["pull-up bar"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Sama seperti Tuck Front Lever, pinggul dijauhkan sedikit dari bar",
+      "Badan tetap mendatar, bahu aktif",
+      "Tahan terkontrol, jangan memaksa kalau bahu mulai jatuh",
+    ],
+    contraindications: [
+      "Nyeri bahu/siku saat menahan",
+      "Kesemutan/menjalar ke tangan",
+      "Nyeri punggung bawah",
+      "Belum ada progresi lanjut ke straddle/full front lever di app ini — konsultasi fisioterapis dulu kalau sudah lancar di tahap ini",
+    ],
+    progressionId: null,
+    regressionId: "ex-tuck-front-lever-hold",
+    videoUrl: null,
+  },
+  {
+    id: "ex-pseudo-planche-lean",
+    name: "Pseudo Planche Lean",
+    muscles: ["shoulder", "chest", "core"],
+    domain: "strength",
+    difficulty: "intermediate",
+    durationSeconds: 30,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Posisi plank tinggi, tangan di samping pinggang (jari ke belakang)",
+      "Condongkan badan ke depan melewati tangan, bahu aktif",
+      "Kembali terkontrol, jangan sampai pergelangan tangan nyeri",
+    ],
+    contraindications: ["Nyeri pergelangan tangan", "Nyeri bahu saat menumpu"],
+    progressionId: "ex-tuck-planche-hold",
+    regressionId: "ex-scapular-pushup",
+    videoUrl: null,
+  },
+  {
+    id: "ex-tuck-planche-hold",
+    name: "Tuck Planche Hold",
+    muscles: ["shoulder", "chest", "core"],
+    domain: "strength",
+    difficulty: "advanced",
+    durationSeconds: 15,
+    equipment: ["dip bars"],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Bertumpu di palang, lutut ditarik ke dada, badan condong ke depan",
+      "Bahu jauh dari telinga, siku lurus",
+      "Tahan terkontrol, turunkan sebelum form rusak",
+    ],
+    contraindications: [
+      "Nyeri bahu saat menumpu",
+      "Nyeri pergelangan tangan",
+      "Belum ada progresi lanjut ke straddle/full planche di app ini — konsultasi fisioterapis dulu kalau sudah lancar di tahap ini",
+    ],
+    progressionId: null,
+    regressionId: "ex-pseudo-planche-lean",
+    videoUrl: null,
+  },
+  {
+    id: "ex-dragon-flag-negative",
+    name: "Dragon Flag Negative",
+    muscles: ["core"],
+    domain: "core",
+    difficulty: "advanced",
+    durationSeconds: 30,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Berbaring, pegang benda kokoh di atas kepala (kaki bangku/tiang)",
+      "Angkat badan lurus dari bahu ke kaki, lalu turunkan perlahan terkontrol",
+      "Punggung bawah tetap netral, jangan melengkung berlebih saat turun",
+    ],
+    contraindications: [
+      "Nyeri punggung bawah",
+      "Belum kuat menahan Hollow-Body Hold penuh — kuasai itu dulu",
+    ],
+    progressionId: null,
+    regressionId: "ex-hollow-hold",
     videoUrl: null,
   },
 ];
