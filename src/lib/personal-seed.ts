@@ -21,7 +21,7 @@ export const SEED_USER: Omit<User, "createdAt"> = {
   name: "Archie",
   age: 32,
   trainingPreset: "muscle-priority",
-  ownedEquipment: ["pull-up bar"],
+  ownedEquipment: ["pull-up bar", "dip bars"],
 };
 
 export const SEED_ASSESSMENT: Omit<
@@ -29,17 +29,40 @@ export const SEED_ASSESSMENT: Omit<
   "id" | "userId" | "createdAt"
 > = {
   diagnosedByPhysician: true,
+  // Corrected 2026-07-20 — owner confirmed the 27° figure used until now was
+  // a transcription error; 29° / mid-lower thoracic (not lumbar) is
+  // authoritative, per rontgen. Free-text summary kept alongside the
+  // structured clinicalProfile below (both self-report, never computed by
+  // the app — docs/04_Clinical_Guardrails.md).
   curveLocationSelfReported:
-    "Didiagnosis dokter ~10th lalu (rontgen biasa). Kurva ganda T1–T12: thoracic atas 32° ke kiri (dekat bahu), thoracic bawah/lumbar 29° ke kanan.",
+    "Double Major Curve (rontgen dokter, grade moderate). Kurva atas: thoracic proksimal T1–T5 (apex T3–T4), 32° konveks kiri (Sinistroscoliosis). Kurva utama: thoracic tengah-bawah T5–T12/L1 (apex T8–T9), 29° konveks kanan (Dextroscoliosis). ATR 8° (scoliometer), rib hump kanan menonjol pada Adam's Forward Bend Test.",
+  clinicalProfile: {
+    upperCurve: {
+      location: "Thoracic proksimal T1–T5 (apex T3–T4)",
+      cobbDegrees: 32,
+      direction: "left",
+    },
+    mainCurve: {
+      location: "Thoracic tengah-bawah T5–T12/L1 (apex T8–T9)",
+      cobbDegrees: 29,
+      direction: "right",
+    },
+    atrDegrees: 8,
+    ribHumpSide: "right",
+    clinicalGrade: "moderate",
+    heightCm: 180,
+    weightKg: 75,
+    targetWeightKg: 75,
+  },
 
-  painLevel: 5,
-  painAreas: "Punggung atas",
+  painLevel: 2,
+  painAreas: "Punggung kanan (nyeri ringan)",
   mobilityLimitations: "Tidak ada keterbatasan gerak yang spesifik.",
 
   activityLevel: "active",
   availableMinutesPerDay: 90,
   primaryGoals:
-    "Postur tegap sempurna, tingkatkan kekuatan otot, dan bila memungkinkan kurangi derajat kurva. Semua latihan full bodyweight tanpa gym/beban — bisa dilakukan di rumah atau di mana saja.",
+    "Postur tegap sempurna, tingkatkan kekuatan otot, dan bila memungkinkan kurangi derajat kurva. Semua latihan full bodyweight tanpa gym/beban — bisa dilakukan di rumah atau di mana saja. Level saat ini pemula-intermediate: pull-up 8–10 rep, dips 6–8 rep. Target frekuensi 5–6 hari/minggu (Senin–Sabtu). Progressive calisthenics jangka panjang — jangan mentok di gerakan pemula, terus naik ke variasi lanjut selama form bersih & tanpa nyeri.",
 
   redFlags: {
     neurologicalSymptoms: false,
