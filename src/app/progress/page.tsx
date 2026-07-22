@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
-import { getPainLogsForUser, putBenchmarkLog } from "@/lib/db";
+import { getAllExercises, getPainLogsForUser, putBenchmarkLog } from "@/lib/db";
 import {
   computeStreak,
   sessionsInLastDays,
@@ -19,6 +19,13 @@ import {
   benchmarkTrend,
   weeklyVolumeByDomain,
 } from "@/lib/progress";
+import {
+  buildProgressionMap,
+  buildSafetyStrip,
+} from "@/lib/progression-view";
+import { ProgressionMap } from "@/components/dashboard/progression-map";
+import { SafetyStrip } from "@/components/dashboard/safety-strip";
+import type { Exercise } from "@/lib/exercise-schemas";
 import type { PainLog, BenchmarkLog } from "@/lib/log-schemas";
 
 function formatDate(ts: number): string {
@@ -40,8 +47,20 @@ const DOMAIN_LABELS: Record<string, string> = {
 };
 
 export default function ProgressPage() {
-  const { hydrated, hydrate, user, workoutLogs, benchmarkLogs, refreshBenchmarks } = useAppStore();
+  const {
+    hydrated,
+    hydrate,
+    user,
+    workoutLogs,
+    benchmarkLogs,
+    sessionLogs,
+    asymmetryLogs,
+    refreshBenchmarks,
+  } = useAppStore();
   const [painLogs, setPainLogs] = useState<PainLog[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  // Captured once on mount so render stays pure (react-hooks/purity).
+  const [now, setNow] = useState(0);
   const [plankSeconds, setPlankSeconds] = useState("");
   const [plankNote, setPlankNote] = useState("");
   const [savingPlank, setSavingPlank] = useState(false);
@@ -53,6 +72,25 @@ export default function ProgressPage() {
   useEffect(() => {
     if (user) getPainLogsForUser(user.id).then(setPainLogs);
   }, [user]);
+
+  useEffect(() => {
+    getAllExercises().then((ex) => {
+      setExercises(ex);
+      setNow(Date.now());
+    });
+  }, []);
+
+  const progressionRows = useMemo(
+    () =>
+      user && exercises.length > 0 && now > 0
+        ? buildProgressionMap(exercises, sessionLogs, user, now)
+        : [],
+    [user, exercises, sessionLogs, now]
+  );
+  const safety = useMemo(
+    () => (user && now > 0 ? buildSafetyStrip(user, asymmetryLogs, now) : null),
+    [user, asymmetryLogs, now]
+  );
 
   const streak = useMemo(() => computeStreak(workoutLogs), [workoutLogs]);
   const week = useMemo(
@@ -109,6 +147,10 @@ export default function ProgressPage() {
       <TopBar title="Progress" subtitle="Konsistensi dan tren dari waktu ke waktu." />
 
       <div className="flex flex-col gap-4 px-5 pb-8">
+        {safety && <SafetyStrip data={safety} />}
+
+        <ProgressionMap rows={progressionRows} />
+
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardTitle>Streak</CardTitle>

@@ -7,7 +7,7 @@ import { TopBar } from "@/components/nav/top-bar";
 import { ThemeToggle } from "@/components/nav/theme-toggle";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ReminderBanner } from "@/components/dashboard/reminder-banner";
+import { RemindersCard } from "@/components/dashboard/reminders-card";
 import { useAppStore } from "@/lib/store";
 import { putUser, getSchrothLogForDate } from "@/lib/db";
 import { computeStreak, sessionsInLastDays } from "@/lib/progress";
@@ -67,7 +67,6 @@ export default function DashboardPage() {
       />
 
       <div className="flex flex-col gap-4 px-5">
-        <ReminderBanner />
         {!latestAssessment ? (
           <Card className="bg-primary text-primary-foreground border-transparent">
             <CardTitle className="text-primary-foreground/70">
@@ -106,19 +105,20 @@ export default function DashboardPage() {
               Sesi hari ini
             </CardTitle>
             <p className="text-sm mb-3">
-              Check-in dulu biar SpineCoach nyusun latihan sesuai kondisi kamu
-              hari ini.
+              Split terjadwal Senin–Sabtu. Langsung mulai — tanpa kuesioner.
             </p>
-            <Link href="/checkin">
+            <Link href="/workout">
               <Button
                 variant="outline"
                 className="w-full border-accent-foreground/30 text-accent-foreground"
               >
-                Mulai check-in harian
+                Mulai sesi hari ini
               </Button>
             </Link>
           </Card>
         )}
+
+        {latestAssessment && <RemindersCard />}
 
         <Link href="/schroth">
           <Card className="flex flex-row items-center justify-between gap-3">

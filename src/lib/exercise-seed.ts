@@ -1,4 +1,10 @@
-import type { Exercise } from "@/lib/exercise-schemas";
+import type {
+  Exercise,
+  ExerciseCategory,
+  ExerciseDomain,
+  ExerciseLevel,
+  MuscleGroup,
+} from "@/lib/exercise-schemas";
 
 /**
  * Seed exercise library — bodyweight, home-friendly, chosen to avoid
@@ -1125,4 +1131,557 @@ export const EXERCISE_SEED: Exercise[] = [
     regressionId: "ex-hollow-hold",
     videoUrl: null,
   },
+
+  // ===================================================================
+  // M16 redesign (spec §5, Appendix A) — [NEW] foundational + Schroth moves.
+  // Explicit category/level/family/schroth so the normalizer leaves them as-is.
+  // Strengthen/stretch/rotation SIDE is never hardcoded → schrothCuePendingPT.
+  // ===================================================================
+
+  // --- Prep (STANDALONE, spec §5 Senin/Jumat) ---
+  {
+    id: "ex-wrist-prep",
+    name: "Wrist Prep / Conditioning",
+    muscles: ["shoulder"],
+    domain: "mobility",
+    category: "prep",
+    level: 1,
+    family: "prep-wrist",
+    isFoundational: false,
+    difficulty: "beginner",
+    durationSeconds: 90,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Kneeling wrist rock: telapak di lantai jari ke lutut, goyang maju-mundur pelan",
+      "Fingertip & reverse (punggung tangan) — siapkan pergelangan",
+      "WAJIB sebelum semua push overhead/planche — cegah cedera",
+    ],
+    contraindications: ["Nyeri pergelangan tangan tajam"],
+    progressionId: null,
+    regressionId: null,
+    videoUrl: null,
+  },
+  // --- Scapular: serratus (spec §5 Jumat) ---
+  {
+    id: "ex-serratus-punch",
+    name: "Serratus Punch",
+    muscles: ["shoulder", "upper-back"],
+    domain: "stability",
+    category: "scapular",
+    level: 1,
+    family: "serratus",
+    isFoundational: true,
+    difficulty: "beginner",
+    durationSeconds: 45,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Telentang/duduk, lengan ke atas, 'tinju' bahu ke langit tanpa menekuk siku",
+      "Rasakan tulang belikat maju (protraksi) — aktifkan serratus",
+      "Langsung menyasar winging skapula kanan (serratus lemah)",
+    ],
+    contraindications: ["Nyeri bahu saat mengangkat lengan"],
+    progressionId: null,
+    regressionId: null,
+    videoUrl: null,
+  },
+  // --- Core: Pallof anti-rotation chain (spec §5 Kamis/Selasa, Appendix A) ---
+  {
+    id: "ex-pallof-half-kneeling",
+    name: "Pallof Press Setengah Berlutut",
+    muscles: ["core"],
+    domain: "core",
+    category: "core",
+    level: 1,
+    family: "pallof",
+    isFoundational: true,
+    difficulty: "beginner",
+    durationSeconds: 45,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Setengah berlutut, dorong tangan lurus ke depan menahan tarikan samping",
+      "Anti-rotasi: badan TIDAK boleh terpuntir — lawan komponen rotasional rib hump",
+      "Kerjakan dua sisi",
+    ],
+    contraindications: ["Nyeri pinggang saat menahan anti-rotasi"],
+    progressionId: "ex-pallof-tall-kneeling",
+    regressionId: null,
+    schrothCuePendingPT: true,
+    videoUrl: null,
+  },
+  {
+    id: "ex-pallof-tall-kneeling",
+    name: "Pallof Press Berlutut Tegak",
+    muscles: ["core"],
+    domain: "core",
+    category: "core",
+    level: 2,
+    family: "pallof",
+    isFoundational: true,
+    difficulty: "intermediate",
+    durationSeconds: 45,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: ["Kedua lutut di lantai, panggul netral", "Tahan anti-rotasi, napas jalan"],
+    contraindications: ["Nyeri pinggang saat menahan"],
+    progressionId: "ex-pallof-standing",
+    regressionId: "ex-pallof-half-kneeling",
+    schrothCuePendingPT: true,
+    videoUrl: null,
+  },
+  {
+    id: "ex-pallof-standing",
+    name: "Pallof Press Berdiri",
+    muscles: ["core"],
+    domain: "core",
+    category: "core",
+    level: 2,
+    family: "pallof",
+    isFoundational: true,
+    difficulty: "intermediate",
+    durationSeconds: 45,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: ["Berdiri kaki selebar bahu", "Dorong lurus, tahan tanpa berputar"],
+    contraindications: ["Nyeri pinggang saat menahan"],
+    progressionId: "ex-pallof-overhead",
+    regressionId: "ex-pallof-tall-kneeling",
+    schrothCuePendingPT: true,
+    videoUrl: null,
+  },
+  {
+    id: "ex-pallof-overhead",
+    name: "Pallof Press Overhead",
+    muscles: ["core", "shoulder"],
+    domain: "core",
+    category: "core",
+    level: 3,
+    family: "pallof",
+    isFoundational: true,
+    difficulty: "advanced",
+    durationSeconds: 45,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: ["Dari berdiri, tekan ke atas overhead menahan tarikan", "Rusuk turun, jangan menjebol pinggang"],
+    contraindications: ["Nyeri bahu overhead", "Nyeri pinggang"],
+    progressionId: null,
+    regressionId: "ex-pallof-standing",
+    schrothCuePendingPT: true,
+    videoUrl: null,
+  },
+  // --- Legs/core: Suitcase carry (STANDALONE, spec §5 Rabu) ---
+  {
+    id: "ex-suitcase-carry",
+    name: "Suitcase Carry",
+    muscles: ["core", "glute"],
+    domain: "conditioning",
+    category: "legs",
+    level: 2,
+    family: "carry",
+    isFoundational: false,
+    difficulty: "intermediate",
+    durationSeconds: 60,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Jinjing beban satu sisi (tas/galon), jalan tegak — anti-lateral-flexion",
+      "Badan JANGAN condong ke sisi beban",
+      "Sisi beban = menunggu validasi PT — jangan tebak, salah sisi bisa memperdalam kurva",
+    ],
+    contraindications: ["Nyeri pinggang saat membawa beban satu sisi"],
+    progressionId: null,
+    regressionId: null,
+    schrothCuePendingPT: true,
+    videoUrl: null,
+  },
+  // --- Mobility: Thoracic extension over support (STANDALONE, spec §5 Sabtu) ---
+  {
+    id: "ex-thoracic-extension-support",
+    name: "Thoracic Extension over Support",
+    muscles: ["upper-back"],
+    domain: "mobility",
+    category: "mobility",
+    level: 1,
+    family: "t-extension",
+    isFoundational: false,
+    difficulty: "beginner",
+    durationSeconds: 90,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Foam roller/gulungan handuk melintang di punggung atas, ekstensi segmental terkontrol",
+      "HARD RULE: support JANGAN di apex T3–T4 & T8–T9 — hindari puncak kurva",
+      "Untuk overhead/handstand; jangan memaksa ujung gerak",
+    ],
+    contraindications: [
+      "Support jatuh di puncak kurva (T3–T4 / T8–T9) — geser dulu",
+      "Nyeri tajam saat ekstensi",
+    ],
+    progressionId: null,
+    regressionId: null,
+    videoUrl: null,
+  },
+  // --- Core: Hollow chain L1–L3 (spec §5 Kamis, Appendix A). ex-hollow-hold
+  // already exists as the "full" tier; these are the tuck→straddle rungs +
+  // hollow rock leading into it. ---
+  {
+    id: "ex-hollow-tuck",
+    name: "Hollow Hold Tuck",
+    muscles: ["core"],
+    domain: "core",
+    category: "core",
+    level: 1,
+    family: "hollow",
+    isFoundational: true,
+    difficulty: "beginner",
+    durationSeconds: 30,
+    holdSeconds: 30,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Telentang, lutut ditarik ke dada, punggung bawah MENEMPEL lantai",
+      "Angkat bahu & panggul sedikit — bentuk cekung (hollow)",
+      "FONDASI front lever/planche/handstand",
+    ],
+    contraindications: ["Punggung bawah terangkat tak terkontrol", "Nyeri leher"],
+    progressionId: "ex-hollow-one-leg",
+    regressionId: null,
+    videoUrl: null,
+  },
+  {
+    id: "ex-hollow-one-leg",
+    name: "Hollow Hold Satu Kaki",
+    muscles: ["core"],
+    domain: "core",
+    category: "core",
+    level: 1,
+    family: "hollow",
+    isFoundational: true,
+    difficulty: "beginner",
+    durationSeconds: 30,
+    holdSeconds: 30,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: ["Satu kaki dijulurkan rendah, satu ditekuk", "Punggung bawah tetap menempel"],
+    contraindications: ["Punggung bawah terangkat tak terkontrol"],
+    progressionId: "ex-hollow-straddle",
+    regressionId: "ex-hollow-tuck",
+    videoUrl: null,
+  },
+  {
+    id: "ex-hollow-straddle",
+    name: "Hollow Hold Straddle",
+    muscles: ["core"],
+    domain: "core",
+    category: "core",
+    level: 2,
+    family: "hollow",
+    isFoundational: true,
+    difficulty: "intermediate",
+    durationSeconds: 35,
+    holdSeconds: 35,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: ["Dua kaki lurus dibuka lebar & rendah", "Cekungan dipertahankan"],
+    contraindications: ["Punggung bawah terangkat tak terkontrol"],
+    progressionId: "ex-hollow-hold",
+    regressionId: "ex-hollow-one-leg",
+    videoUrl: null,
+  },
+  {
+    id: "ex-hollow-rock",
+    name: "Hollow Rock",
+    muscles: ["core"],
+    domain: "core",
+    category: "core",
+    level: 3,
+    family: "hollow",
+    isFoundational: true,
+    difficulty: "advanced",
+    durationSeconds: 35,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: ["Dari full hollow, ayun badan maju-mundur tetap cekung", "Punggung bawah jangan lepas dari bentuk"],
+    contraindications: ["Punggung bawah melengkung tak terkontrol", "Nyeri leher"],
+    progressionId: null,
+    regressionId: "ex-hollow-hold",
+    videoUrl: null,
+  },
+  // --- Schroth breathing (spec §1 — direction IS hardcodable geometry) ---
+  {
+    id: "ex-schroth-breathing-upper",
+    name: "Schroth 3D Breathing — Thoracic Atas",
+    muscles: ["core"],
+    domain: "breathing",
+    category: "schroth",
+    level: 1,
+    family: "schroth-breathing",
+    isFoundational: false,
+    difficulty: "beginner",
+    durationSeconds: 300,
+    equipment: [],
+    sideEmphasis: "right",
+    cues: [
+      "Kurva atas T1–T5: arahkan napas MASUK ke KANAN ATAS (sisi konkaf) untuk membukanya",
+      "Rusuk kanan atas mengembang saat inhale; elongasi aksial saat exhale",
+    ],
+    contraindications: ["Pusing berat saat napas dalam"],
+    progressionId: null,
+    regressionId: null,
+    schrothCue: "Napas ke KANAN ATAS (konkaf T1–T5).",
+    mirrorCheckRequired: true,
+    videoUrl: null,
+  },
+  {
+    id: "ex-schroth-breathing-lower",
+    name: "Schroth 3D Breathing — Thoracic Bawah",
+    muscles: ["core"],
+    domain: "breathing",
+    category: "schroth",
+    level: 1,
+    family: "schroth-breathing",
+    isFoundational: false,
+    difficulty: "beginner",
+    durationSeconds: 300,
+    equipment: [],
+    sideEmphasis: "left",
+    cues: [
+      "Kurva bawah T6–T12: arahkan napas MASUK ke KIRI BAWAH (sisi konkaf)",
+      "Rusuk kiri bawah mengembang saat inhale; elongasi aksial saat exhale",
+    ],
+    contraindications: ["Pusing berat saat napas dalam"],
+    progressionId: null,
+    regressionId: null,
+    schrothCue: "Napas ke KIRI BAWAH (konkaf T6–T12).",
+    mirrorCheckRequired: true,
+    videoUrl: null,
+  },
+  // --- Schroth corrective — direction PENDING_PT (spec §1: never hardcode) ---
+  {
+    id: "ex-schroth-pelvic-correction",
+    name: "Schroth Pelvic Correction",
+    muscles: ["glute", "core"],
+    domain: "stability",
+    category: "schroth",
+    level: 1,
+    family: "schroth-corrective",
+    isFoundational: false,
+    difficulty: "beginner",
+    durationSeconds: 300,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Koreksi posisi panggul ke netral (lawan shift)",
+      "Arah koreksi shift = menunggu validasi Schroth PT — jangan tebak",
+    ],
+    contraindications: ["Nyeri panggul saat koreksi"],
+    progressionId: null,
+    regressionId: null,
+    schrothCuePendingPT: true,
+    mirrorCheckRequired: true,
+    videoUrl: null,
+  },
+  {
+    id: "ex-prone-derotation",
+    name: "Prone Derotation",
+    muscles: ["upper-back", "core"],
+    domain: "stability",
+    category: "schroth",
+    level: 2,
+    family: "schroth-corrective",
+    isFoundational: false,
+    difficulty: "intermediate",
+    durationSeconds: 300,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Tengkurap, derotasi rotasional terkontrol",
+      "ARAH derotasi = menunggu validasi PT — salah arah memperdalam kurva",
+    ],
+    contraindications: ["Nyeri saat rotasi tulang belakang"],
+    progressionId: null,
+    regressionId: null,
+    schrothCuePendingPT: true,
+    mirrorCheckRequired: true,
+    videoUrl: null,
+  },
+  {
+    id: "ex-side-lying-corrective",
+    name: "Side-Lying Korektif",
+    muscles: ["core", "glute"],
+    domain: "stability",
+    category: "schroth",
+    level: 2,
+    family: "schroth-corrective",
+    isFoundational: false,
+    difficulty: "intermediate",
+    durationSeconds: 300,
+    equipment: [],
+    sideEmphasis: "bilateral",
+    cues: [
+      "Berbaring miring korektif dengan elongasi",
+      "SISI = menunggu validasi PT — jangan tebak",
+    ],
+    contraindications: ["Nyeri bahu tumpu"],
+    progressionId: null,
+    regressionId: null,
+    schrothCuePendingPT: true,
+    mirrorCheckRequired: true,
+    videoUrl: null,
+  },
 ];
+
+// ===================================================================
+// M16 normalizer (spec §2, §6.1). Existing rows carry only legacy
+// domain/difficulty/progressionId; the fixed-split + progression engines read
+// category/level/family/progressionPrevId/progressionNextId. Rather than
+// hand-edit ~60 rows, derive those here, letting any explicitly-authored value
+// win. Deterministic and pure — the derived seed is what db.syncSeedExercises
+// writes. See docs/12_Redesign_Split_Progression.md.
+// ===================================================================
+
+const DOMAIN_TO_CATEGORY: Record<ExerciseDomain, ExerciseCategory> = {
+  breathing: "schroth",
+  "pelvic-floor": "kegel",
+  mobility: "mobility",
+  stability: "scapular",
+  core: "core",
+  balance: "legs",
+  strength: "push", // refined by muscle below
+  conditioning: "legs",
+  recovery: "mobility",
+};
+
+const LEVEL_FROM_DIFFICULTY: Record<Exercise["difficulty"], ExerciseLevel> = {
+  beginner: 1,
+  intermediate: 2,
+  advanced: 3,
+};
+
+// Muscle → category for the strength domain (its moves span push/pull/legs).
+function strengthCategory(muscles: MuscleGroup[]): ExerciseCategory {
+  const has = (m: MuscleGroup) => muscles.includes(m);
+  if (has("lat") || has("upper-back") || has("trap")) return "pull";
+  if (
+    has("quad") || has("glute") || has("calf") || has("hamstring") ||
+    has("adductor")
+  )
+    return "legs";
+  if (has("core") || has("hip-flexor")) return "core";
+  return "push"; // chest/shoulder and fallthrough
+}
+
+// Rows whose domain-derived category is wrong (glute/hinge work filed under the
+// "stability" domain reads as "scapular" by default — it is really legs).
+const CATEGORY_OVERRIDE: Record<string, ExerciseCategory> = {
+  "ex-clamshell-raise": "legs",
+  "ex-glute-bridge-march": "legs",
+  "ex-standing-hip-hinge": "legs",
+};
+
+// Explicit family + skill-line/foundational overrides for legacy rows where the
+// regression-walk root would merge chains that spec §6B keeps separate.
+interface FamilyOverride {
+  family: string;
+  isFoundational: boolean;
+  prev?: string | null;
+  next?: string | null;
+}
+const FAMILY_OVERRIDE: Record<string, FamilyOverride> = {
+  // Front-lever skill-line (spec §6B.3) — split off the pull-up family.
+  "ex-tuck-front-lever-hold": { family: "front-lever", isFoundational: false },
+  "ex-advanced-tuck-front-lever-hold": { family: "front-lever", isFoundational: false },
+  // Planche skill-line — split off the scapular family.
+  "ex-pseudo-planche-lean": { family: "planche", isFoundational: false },
+  "ex-tuck-planche-hold": { family: "planche", isFoundational: false },
+  // Dragon flag — advanced core skill move, keep out of the hollow projection.
+  "ex-dragon-flag-negative": { family: "dragon-flag", isFoundational: false },
+  // Pike push-up → HSPU/overhead skill-line (spec §6B.3).
+  "ex-pike-pushup": { family: "overhead-push", isFoundational: false },
+  // Relink the existing full-hollow into the new hollow chain (spec §5 Kamis).
+  "ex-hollow-hold": {
+    family: "hollow",
+    isFoundational: true,
+    prev: "ex-hollow-straddle",
+    next: "ex-hollow-rock",
+  },
+};
+
+// Foundational family roots (spec §6B.2) — subject to the L3/6-month target.
+const FOUNDATIONAL_ROOTS = new Set<string>([
+  "ex-wall-pushup", // push horizontal
+  "ex-dip-support-hold", // dip
+  "ex-dead-hang", // pull-up vertical + hang
+  "ex-table-row", // row
+  "ex-wall-sit", // squat
+  "ex-glute-bridge", // hinge/glute
+  "ex-clamshell-raise", // activation (glute/hinge)
+  "ex-calf-raise", // calf
+  "ex-front-plank-knees", // plank
+  "ex-side-plank-knees-left", // side-plank
+  "ex-side-plank-knees-right",
+  "ex-l-sit-foot-supported", // l-sit
+  "ex-scapular-wall-slide", // scapular quality
+  "hollow",
+  "pallof",
+  "serratus",
+]);
+
+/** Walk regressionId to the chain root; stop early at an explicit `family`. */
+function familyRoot(ex: Exercise, byId: Map<string, Exercise>): string {
+  let cur = ex;
+  const seen = new Set<string>();
+  while (cur.regressionId && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    const prev = byId.get(cur.regressionId);
+    if (!prev) break;
+    if (prev.family) return prev.family;
+    cur = prev;
+  }
+  return cur.family ?? cur.id;
+}
+
+export function normalizeExercise(
+  ex: Exercise,
+  byId: Map<string, Exercise>
+): Exercise {
+  const category =
+    ex.category ??
+    CATEGORY_OVERRIDE[ex.id] ??
+    (ex.domain === "strength"
+      ? strengthCategory(ex.muscles)
+      : DOMAIN_TO_CATEGORY[ex.domain]);
+  const level = ex.level ?? LEVEL_FROM_DIFFICULTY[ex.difficulty];
+  const famOverride = FAMILY_OVERRIDE[ex.id];
+  const family =
+    ex.family ?? famOverride?.family ?? familyRoot(ex, byId);
+  const isFoundational =
+    famOverride?.isFoundational ??
+    (ex.family !== undefined && ex.isFoundational
+      ? true
+      : FOUNDATIONAL_ROOTS.has(family));
+  const progressionPrevId =
+    ex.progressionPrevId ?? famOverride?.prev ?? ex.regressionId;
+  const progressionNextId =
+    ex.progressionNextId ?? famOverride?.next ?? ex.progressionId;
+  return {
+    ...ex,
+    category,
+    level,
+    family,
+    isFoundational,
+    progressionPrevId,
+    progressionNextId,
+  };
+}
+
+/**
+ * The seed the app actually writes to IndexedDB: every row normalized so the
+ * M16 engines can rely on category/level/family/prev-next being present.
+ */
+export const NORMALIZED_EXERCISE_SEED: Exercise[] = (() => {
+  const byId = new Map(EXERCISE_SEED.map((ex) => [ex.id, ex]));
+  return EXERCISE_SEED.map((ex) => normalizeExercise(ex, byId));
+})();

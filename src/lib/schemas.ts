@@ -84,6 +84,10 @@ export const userSchema = z.object({
   createdAt: z.number(),
   trainingPreset: trainingPresetEnum.default("balanced"),
   ownedEquipment: z.array(z.string()).default([]),
+  // M16 (spec §2 UserFlags). Optional; undefined is treated as FALSE
+  // everywhere (safe default) — exercises with requiresPTClearance stay
+  // locked until a PT clears the owner and this is set true. Never auto-set.
+  ptCleared: z.boolean().optional(),
 });
 export type User = z.infer<typeof userSchema>;
 

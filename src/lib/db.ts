@@ -1,10 +1,19 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Assessment, User } from "@/lib/schemas";
 import type { CheckIn, Exercise } from "@/lib/exercise-schemas";
-import type { BenchmarkLog, PainLog, ReassessmentLog, WorkoutLog } from "@/lib/log-schemas";
+import type {
+  AsymmetryLog,
+  BenchmarkLog,
+  KegelLog,
+  PainLog,
+  ReassessmentLog,
+  RibHumpLog,
+  SessionLog,
+  WorkoutLog,
+} from "@/lib/log-schemas";
 import type { Photo } from "@/lib/media-schemas";
 import type { SchrothLog } from "@/lib/schroth-schemas";
-import { EXERCISE_SEED } from "@/lib/exercise-seed";
+import { NORMALIZED_EXERCISE_SEED } from "@/lib/exercise-seed";
 import { SEED_USER, SEED_ASSESSMENT } from "@/lib/personal-seed";
 
 /**
@@ -14,7 +23,7 @@ import { SEED_USER, SEED_ASSESSMENT } from "@/lib/personal-seed";
  */
 
 const DB_NAME = "spinecoach-ai";
-const DB_VERSION = 7;
+const DB_VERSION = 9;
 
 interface SpineCoachDB extends DBSchema {
   users: { key: string; value: User };
@@ -62,6 +71,28 @@ interface SpineCoachDB extends DBSchema {
   schrothLogs: {
     key: string;
     value: SchrothLog;
+    indexes: { "by-userId": string };
+  };
+  // M16 (spec §6.2, §3).
+  sessionLogs: {
+    key: string;
+    value: SessionLog;
+    indexes: { "by-userId": string };
+  };
+  asymmetryLogs: {
+    key: string;
+    value: AsymmetryLog;
+    indexes: { "by-userId": string };
+  };
+  // M16 §9 trackers / §8 timers.
+  ribHumpLogs: {
+    key: string;
+    value: RibHumpLog;
+    indexes: { "by-userId": string };
+  };
+  kegelLogs: {
+    key: string;
+    value: KegelLog;
     indexes: { "by-userId": string };
   };
 }
@@ -122,6 +153,26 @@ export function getDB(): Promise<IDBPDatabase<SpineCoachDB>> {
             keyPath: "id",
           });
           schrothLogs.createIndex("by-userId", "userId");
+        }
+        if (oldVersion < 8) {
+          const sessionLogs = db.createObjectStore("sessionLogs", {
+            keyPath: "id",
+          });
+          sessionLogs.createIndex("by-userId", "userId");
+          const asymmetryLogs = db.createObjectStore("asymmetryLogs", {
+            keyPath: "id",
+          });
+          asymmetryLogs.createIndex("by-userId", "userId");
+        }
+        if (oldVersion < 9) {
+          const ribHumpLogs = db.createObjectStore("ribHumpLogs", {
+            keyPath: "id",
+          });
+          ribHumpLogs.createIndex("by-userId", "userId");
+          const kegelLogs = db.createObjectStore("kegelLogs", {
+            keyPath: "id",
+          });
+          kegelLogs.createIndex("by-userId", "userId");
         }
       },
     });
@@ -206,7 +257,7 @@ export async function seedPersonalDataIfEmpty(): Promise<void> {
 export async function syncSeedExercises(): Promise<void> {
   const db = await getDB();
   const tx = db.transaction("exercises", "readwrite");
-  await Promise.all(EXERCISE_SEED.map((ex) => tx.store.put(ex)));
+  await Promise.all(NORMALIZED_EXERCISE_SEED.map((ex) => tx.store.put(ex)));
   await tx.done;
 }
 
@@ -342,6 +393,80 @@ export async function getSchrothLogForDate(
   return all.find((l) => l.dateKey === dateKey);
 }
 
+export async function putSessionLog(log: SessionLog): Promise<void> {
+  const db = await getDB();
+  await db.put("sessionLogs", log);
+}
+
+/** Session logs for a user, newest first (spec §6.2). */
+export async function getSessionLogsForUser(
+  userId: string
+): Promise<SessionLog[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("sessionLogs", "by-userId", userId);
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** Session logs for one exercise, newest first — feeds auto-promotion (§6.3). */
+export async function getSessionLogsForExercise(
+  userId: string,
+  exerciseId: string
+): Promise<SessionLog[]> {
+  const all = await getSessionLogsForUser(userId);
+  return all.filter((l) => l.exerciseId === exerciseId);
+}
+
+export async function putAsymmetryLog(log: AsymmetryLog): Promise<void> {
+  const db = await getDB();
+  await db.put("asymmetryLogs", log);
+}
+
+/** Asymmetry safety logs for a user, newest first (spec §3, §6.6). */
+export async function getAsymmetryLogsForUser(
+  userId: string
+): Promise<AsymmetryLog[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("asymmetryLogs", "by-userId", userId);
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** Mark an asymmetry log reviewed/unreviewed (dashboard safety strip). */
+export async function setAsymmetryReviewed(
+  id: string,
+  reviewed: boolean
+): Promise<void> {
+  const db = await getDB();
+  const existing = await db.get("asymmetryLogs", id);
+  if (!existing) return;
+  await db.put("asymmetryLogs", { ...existing, reviewed });
+}
+
+export async function putRibHumpLog(log: RibHumpLog): Promise<void> {
+  const db = await getDB();
+  await db.put("ribHumpLogs", log);
+}
+
+/** Rib-hump logs for a user, newest first (spec §9.2, log-only). */
+export async function getRibHumpLogsForUser(
+  userId: string
+): Promise<RibHumpLog[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("ribHumpLogs", "by-userId", userId);
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function putKegelLog(log: KegelLog): Promise<void> {
+  const db = await getDB();
+  await db.put("kegelLogs", log);
+}
+
+/** Kegel logs for a user, newest first (spec §7 daily count). */
+export async function getKegelLogsForUser(userId: string): Promise<KegelLog[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("kegelLogs", "by-userId", userId);
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
 /**
  * Wipe every user-generated record (Settings → reset). Leaves the exercises
  * store intact so the app still has its library on next load.
@@ -363,6 +488,10 @@ export async function resetUserData(): Promise<void> {
     "medicalRecords",
     "reports",
     "schrothLogs",
+    "sessionLogs",
+    "asymmetryLogs",
+    "ribHumpLogs",
+    "kegelLogs",
   ] as const;
   const tx = db.transaction(stores, "readwrite");
   await Promise.all(stores.map((s) => tx.objectStore(s).clear()));

@@ -1,6 +1,14 @@
 import type { Exercise } from "@/lib/exercise-schemas";
 import type { CompletedExercise } from "@/lib/log-schemas";
-import type { GeneratedSession } from "@/lib/decision-engine";
+
+/**
+ * A block of exercises to play, decoupled from any engine. Both the M16 fixed
+ * split (split.ts → ResolvedBlock) and any legacy source can feed this shape.
+ */
+export interface PlayerBlock {
+  label: string;
+  exercises: Exercise[];
+}
 
 /** Fixed rest inserted between consecutive exercise phases (docs spec). */
 export const REST_SECONDS = 20;
@@ -23,9 +31,9 @@ export type PhaseStatus = "done" | "skipped";
  * exercises stay one phase. A 20s rest is placed between consecutive exercise
  * phases only — never before the first or after the last.
  */
-export function buildSteps(session: GeneratedSession): Step[] {
+export function buildSteps(blocks: PlayerBlock[]): Step[] {
   const exerciseSteps: Step[] = [];
-  for (const block of session.blocks) {
+  for (const block of blocks) {
     for (const exercise of block.exercises) {
       if (exercise.sideEmphasis === "bilateral") {
         exerciseSteps.push({
@@ -67,12 +75,12 @@ export function buildSteps(session: GeneratedSession): Step[] {
  * of its phases was advanced ("done"); an absent phase counts as not done.
  */
 export function toCompletedExercises(
-  session: GeneratedSession,
+  blocks: PlayerBlock[],
   statuses: Record<string, PhaseStatus>
 ): CompletedExercise[] {
   const seen = new Set<string>();
   const result: CompletedExercise[] = [];
-  for (const block of session.blocks) {
+  for (const block of blocks) {
     for (const ex of block.exercises) {
       if (seen.has(ex.id)) continue;
       seen.add(ex.id);

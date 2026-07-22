@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildSteps, toCompletedExercises, REST_SECONDS } from "@/lib/session-player";
-import type { GeneratedSession } from "@/lib/decision-engine";
+import {
+  buildSteps,
+  toCompletedExercises,
+  REST_SECONDS,
+  type PlayerBlock,
+} from "@/lib/session-player";
 import type { Exercise } from "@/lib/exercise-schemas";
 
 function ex(id: string, side: Exercise["sideEmphasis"], seconds = 60): Exercise {
@@ -21,15 +25,8 @@ function ex(id: string, side: Exercise["sideEmphasis"], seconds = 60): Exercise 
   };
 }
 
-function session(exercises: Exercise[]): GeneratedSession {
-  return {
-    movementFocus: "x",
-    intensity: "moderate",
-    blocks: [{ domain: "strength", label: "Kekuatan", exercises }],
-    estimatedMinutes: 10,
-    reasoning: [],
-    escalated: false,
-  };
+function session(exercises: Exercise[]): PlayerBlock[] {
+  return [{ label: "Kekuatan", exercises }];
 }
 
 describe("buildSteps", () => {

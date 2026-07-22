@@ -4,15 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, SkipForward, Check, X, Volume2, VolumeX } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScalePicker } from "@/components/ui/scale-picker";
 import { useCountdown } from "@/lib/use-countdown";
 import { beepForSecond, playCue, isBeepMuted, setBeepMuted } from "@/lib/use-beep";
 import {
   buildSteps,
   toCompletedExercises,
   type PhaseStatus,
+  type PlayerBlock,
 } from "@/lib/session-player";
-import type { GeneratedSession } from "@/lib/decision-engine";
 import type { CompletedExercise } from "@/lib/log-schemas";
 
 const SIDE_LABEL: Record<string, string> = {
@@ -22,20 +21,20 @@ const SIDE_LABEL: Record<string, string> = {
 };
 
 export function SessionPlayer({
-  session,
+  blocks,
   onFinish,
   onExit,
 }: {
-  session: GeneratedSession;
-  onFinish: (r: { completed: CompletedExercise[]; postSessionPain: number }) => void;
+  blocks: PlayerBlock[];
+  /** Called with per-exercise completion once the timed session ends. */
+  onFinish: (completed: CompletedExercise[]) => void;
   onExit: () => void;
 }) {
-  const steps = useMemo(() => buildSteps(session), [session]);
+  const steps = useMemo(() => buildSteps(blocks), [blocks]);
   const [index, setIndex] = useState(0);
   const [statuses, setStatuses] = useState<Record<string, PhaseStatus>>({});
   // Start already in the summary when there is nothing to play (empty session).
   const [showSummary, setShowSummary] = useState(steps.length === 0);
-  const [pain, setPain] = useState(2);
 
   const step = steps[index];
   const timer = useCountdown(step?.seconds ?? 0, { autoStart: true });
@@ -87,30 +86,17 @@ export function SessionPlayer({
   if (showSummary) {
     return (
       <div className="flex flex-col gap-4 px-5 pb-8">
-        <Card>
+        <Card className="items-center text-center">
           <CardTitle>Sesi selesai</CardTitle>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Gimana nyeri kamu setelah sesi ini?
+          <p className="mt-1 text-sm text-muted-foreground">
+            Lanjut ke catatan latihan — reps/hold, form, dan RPE per gerakan.
           </p>
-          <ScalePicker
-            value={pain}
-            onChange={setPain}
-            min={0}
-            max={10}
-            lowLabel="Tidak nyeri"
-            highLabel="Sangat nyeri"
-          />
         </Card>
         <Button
           size="lg"
-          onClick={() =>
-            onFinish({
-              completed: toCompletedExercises(session, statuses),
-              postSessionPain: pain,
-            })
-          }
+          onClick={() => onFinish(toCompletedExercises(blocks, statuses))}
         >
-          <Check size={18} /> Simpan sesi
+          <Check size={18} /> Lanjut ke catatan
         </Button>
         <p className="px-1 text-xs text-muted-foreground">
           SpineCoach AI bukan pengganti dokter atau fisioterapis. Hentikan
