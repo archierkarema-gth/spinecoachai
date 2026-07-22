@@ -7,11 +7,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  SpineCoach AI design tokens — theme `care`.
-  Calm, restorative, non-clinical green palette. Light + dark auto via
-  prefers-color-scheme. Variable names carried over from the codebase;
-  care tokens mapped onto them. Contrast rule: small colored text uses the
-  strong/deep green (--primary-deep / --accent), not the base green.
+  SpineCoach AI design tokens — theme `slate` (matches the app icon's soft
+  slate-blue mark, #4F7191). Light + dark auto via prefers-color-scheme.
+  Variable names carried over from the codebase; slate tokens mapped onto
+  them. Contrast rule: small colored text uses the strong/deep blue
+  (--primary-deep / --accent), not the base blue.
 */
 :root {
   --muted-foreground: oklch(0.556 0 0);
@@ -20,12 +20,12 @@
 
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --primary-deep: #3e6b52;
+  --primary-deep: #3d5b73;
   /* Text on the Schroth breathing circle's own bg-primary/NN tint — that
      tint tracks --primary directly, not --card, so it needs its own token
      independent of --primary-deep (which now means "on --card" in light
      mode, see :root[data-theme="light"] below). */
-  --breathing-label: #3e6b52;
+  --breathing-label: #3d5b73;
 
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
@@ -88,28 +88,28 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #121814;
-    --foreground: #e8efe9;
-    --card-foreground: #e8efe9;
-    --popover: #1a211d;
-    --popover-foreground: #e8efe9;
-    --secondary: #232b26;
-    --secondary-foreground: #e8efe9;
-    --input: #2e3a33;
-    --ring: #7fb393;
+    --background: #12181f;
+    --foreground: #e9eef3;
+    --card-foreground: #e9eef3;
+    --popover: #1a222b;
+    --popover-foreground: #e9eef3;
+    --secondary: #232d38;
+    --secondary-foreground: #e9eef3;
+    --input: #2e3c49;
+    --ring: #7fa2c2;
 
-    --muted: #232b26;
-    --muted-foreground: #9dafa3;
-    --card: #1a211d;
-    --border: #2e3a33;
+    --muted: #232d38;
+    --muted-foreground: #9db0c0;
+    --card: #1a222b;
+    --border: #2e3c49;
 
-    --primary: #7fb393;
-    --primary-foreground: #121814;
-    --primary-deep: #9cc9ac;
-    --breathing-label: #9cc9ac;
+    --primary: #7fa2c2;
+    --primary-foreground: #12181f;
+    --primary-deep: #aecbe0;
+    --breathing-label: #aecbe0;
 
-    --accent: #9cc9ac;
-    --accent-foreground: #121814;
+    --accent: #aecbe0;
+    --accent-foreground: #12181f;
 
     --success: #6fae7f;
     --warning: #ce9c4a;
@@ -126,28 +126,28 @@
   override prefers-color-scheme. No attribute set = system default.
 */
 :root[data-theme="dark"] {
-  --background: #121814;
-  --foreground: #e8efe9;
-  --card-foreground: #e8efe9;
-  --popover: #1a211d;
-  --popover-foreground: #e8efe9;
-  --secondary: #232b26;
-  --secondary-foreground: #e8efe9;
-  --input: #2e3a33;
-  --ring: #7fb393;
+  --background: #12181f;
+  --foreground: #e9eef3;
+  --card-foreground: #e9eef3;
+  --popover: #1a222b;
+  --popover-foreground: #e9eef3;
+  --secondary: #232d38;
+  --secondary-foreground: #e9eef3;
+  --input: #2e3c49;
+  --ring: #7fa2c2;
 
-  --muted: #232b26;
-  --muted-foreground: #9dafa3;
-  --card: #1a211d;
-  --border: #2e3a33;
+  --muted: #232d38;
+  --muted-foreground: #9db0c0;
+  --card: #1a222b;
+  --border: #2e3c49;
 
-  --primary: #7fb393;
-  --primary-foreground: #121814;
-  --primary-deep: #9cc9ac;
-  --breathing-label: #9cc9ac;
+  --primary: #7fa2c2;
+  --primary-foreground: #12181f;
+  --primary-deep: #aecbe0;
+  --breathing-label: #aecbe0;
 
-  --accent: #9cc9ac;
-  --accent-foreground: #121814;
+  --accent: #aecbe0;
+  --accent-foreground: #12181f;
 
   --success: #6fae7f;
   --warning: #ce9c4a;
@@ -157,44 +157,45 @@
 }
 
 :root[data-theme="light"] {
-  /* Rich/deep sage green cards on a pale sage-tinted page — the "care"
-     palette's light-mode counterpart to dark mode's greens (which stay
-     dark-card + light-mint-accent). Card text uses --card-foreground
-     (light) since the card itself is a mid-dark green, not the page's
-     near-white --background. */
-  --card: #4c7a5c;
-  --card-foreground: #f5faf6;
-  --border: #3a5c46;
+  /* Rich/deep slate-blue cards on a pale blue-tinted page — matches the app
+     icon's #4F7191 mark. Light mode's counterpart to dark mode's blues
+     (which stay dark-card + light-blue-accent). Card text uses
+     --card-foreground (near-white) since the card itself is a mid-dark
+     blue, not the page's near-white --background — kept at a ~9:1 contrast
+     ratio against #4F7191 so text never washes into the card. */
+  --card: #4f7191;
+  --card-foreground: #f6f9fb;
+  --border: #3b5c78;
   /* Tuned for legibility ON --card (where nearly every use of this token
      lives — captions, counts, secondary lines inside Cards). The few
      places that show muted text directly on the pale --background instead
      (TopBar subtitle, loading states, form placeholders) use an explicit
      text-foreground/NN class rather than this token — see those files. */
-  --muted-foreground: #c3d9c9;
+  --muted-foreground: #cddce7;
 
-  --primary: #bfe0c9;
-  --primary-foreground: #16241c;
-  --primary-deep: #f5faf6;
-  --breathing-label: #16241c;
+  --primary: #c7dbea;
+  --primary-foreground: #17242f;
+  --primary-deep: #f6f9fb;
+  --breathing-label: #17242f;
 
-  --accent: #dcecdf;
-  --accent-foreground: #1f3327;
+  --accent: #dfebf2;
+  --accent-foreground: #20313f;
 
   --success: #4c8c5c;
   --warning: #b8822e;
   --destructive: oklch(0.577 0.245 27.325);
 
-  --background: #f2f7f4;
+  --background: #f1f5f8;
   --foreground: oklch(0.145 0 0);
-  --popover: #4c7a5c;
-  --popover-foreground: #f5faf6;
-  --secondary: #dcecdf;
-  --secondary-foreground: #1f3327;
-  --muted: #dcecdf;
-  --input: #c7ddcc;
-  --ring: #4c7a5c;
+  --popover: #4f7191;
+  --popover-foreground: #f6f9fb;
+  --secondary: #dfebf2;
+  --secondary-foreground: #20313f;
+  --muted: #dfebf2;
+  --input: #c9dae5;
+  --ring: #4f7191;
 
-  --shadow: 0 1px 2px rgba(31, 42, 36, 0.08), 0 4px 16px rgba(31, 42, 36, 0.1);
+  --shadow: 0 1px 2px rgba(23, 36, 47, 0.08), 0 4px 16px rgba(23, 36, 47, 0.1);
 }
 
 @theme inline {

@@ -110,7 +110,7 @@ export default function PhotosPage() {
                     "h-10 flex-1 rounded-[var(--radius-md)] border text-xs font-semibold transition-colors " +
                     (pose === p.value
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background text-muted-foreground")
+                      : "border-border bg-background text-foreground/60")
                   }
                 >
                   {p.label}

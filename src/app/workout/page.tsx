@@ -239,7 +239,10 @@ export default function WorkoutPage() {
                     </span>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                    {/* On the inner bg-background box (not bg-card), text-primary
+                        is tuned for the outer card in light mode and washes out
+                        here — text-foreground/80 stays legible in both modes. */}
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-foreground/80">
                       {SIDE_LABEL[ex.sideEmphasis]}
                     </span>
                     {ex.schrothCuePendingPT && (
@@ -257,7 +260,7 @@ export default function WorkoutPage() {
                     ))}
                   </div>
                   {(ex.schrothCue || ex.cues.length > 0) && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
+                    <p className="mt-1.5 text-xs text-foreground/60">
                       {[ex.schrothCue, ...ex.cues].filter(Boolean).join(" · ")}
                     </p>
                   )}
